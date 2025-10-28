@@ -4,8 +4,8 @@ function Card(){
   return(
     <div className="Dipu">
     <img className="go" src={pppic} alt="this is me"></img>
-    <h1>This is Dipendra Roka</h1>
-    <p>Hello my name is Dipendra Roka</p>
+    <h1 className="card-title">This is Dipendra Roka</h1>
+    <p className="card-para">Hello my name is Dipendra Roka</p>
     </div>
 
   );
