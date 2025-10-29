@@ -1,8 +1,23 @@
-.button{
-  color:white;
+.list-cat{
+  font-size: 0.2em;
+  font-weight: bold;
+  color:hsl(0, 0, 20%);
+  text-align:center;
+  border:3px solid;
   border-radius: 5px;
-  background-color: rgb(2, 134, 200);
-  cursor: pointer;
-  border: none;
-  padding: 10px 20px;
+  margin-bottom: 30px;
+  background-color: aqua;
+}
+
+.list-items li{
+  font-size: 0.2em;
+  list-style: none;
+  color:hsl(0, 0, 20%);
+  text-align:center;
+  margin: 0;
+}
+
+.list-items li:hover{
+  cursor:pointer;
+  color: hsl(0, 0, 10%);
 }
