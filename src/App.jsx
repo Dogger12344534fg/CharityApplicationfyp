@@ -1,7 +1,8 @@
-import Counter from './Counter.jsx';
+import ObjectUp from "./ObjectUp";
+import Color from "./useState/Color";
  function App() {
 return (<>
-<Counter/>
+<ObjectUp/>
   </>
 );
 }
