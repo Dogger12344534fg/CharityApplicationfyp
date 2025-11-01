@@ -1,8 +1,8 @@
-import ObjectUp from "./ObjectUp";
-import Color from "./useState/Color";
- function App() {
-return (<>
-<ObjectUp/>
+import TodoList from './TodoList';
+function App() {
+return (
+<>
+<TodoList/>
   </>
 );
 }
