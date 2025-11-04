@@ -2,9 +2,6 @@ import React,{useState} from "react";
 
 function MyComponent(){
   const [name, setName]= useState("");
- 
-
-
   function coToset(event){
     setName(event.target.value);
   }
