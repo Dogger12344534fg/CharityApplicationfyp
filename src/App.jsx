@@ -1,8 +1,8 @@
-import TodoList from './TodoList';
+import Color from './useState/Color';
 function App() {
 return (
 <>
-<TodoList/>
+<Color/>
   </>
 );
 }
