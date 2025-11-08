@@ -1,0 +1,33 @@
+{
+  "name": "login",
+  "version": "1.0.0",
+  "description": "This is the login and signup page",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dogger12344534fg/CharityApplicationfyp.git"
+  },
+  "keywords": [
+    "Login"
+  ],
+  "author": "Dipendra Roka",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Dogger12344534fg/CharityApplicationfyp/issues"
+  },
+  "homepage": "https://github.com/Dogger12344534fg/CharityApplicationfyp#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.3",
+    "nodemailer": "^7.0.10",
+    "nodemon": "^3.1.10"
+  }
+}
