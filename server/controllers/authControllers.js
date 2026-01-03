@@ -221,3 +221,71 @@ export const isAuthenticated = async(req,res)=>{
 
 
 
+//sent password reset
+
+export const sendResetOtp = async(req,res)=>{
+  const {email} = req.body;
+
+  if(!email){
+    return res.json({success:false,message:'Email is required'})
+  }
+
+  try{
+    const user = await userModel.findOne({email});
+    if(!user){
+      return res.json({success: false, message:'User not found'});
+    }
+
+    const otp = String(Math.floor(10000 + Math.random()* 900000));
+    user.verifyOtp = otp;
+     user.verifyOtpExpireAt = Date.now()+ 24 * 60 * 60 *1000
+
+    await user.save();
+      await sendMail({ to: user.email, subject: "Account verification OTP",
+     html: `<p>Your OTP is <b>${otp}</b>. Verify your account using this code.</p>` });
+
+    res.json({success:true,message:'Verification OTP sent on Email'});
+
+  }
+   catch(error){
+    res.json({success:false, message:error.message});
+  }
+}
+
+//reset user password
+export const resetPassword = async(req,res)=>
+{
+  const{email,otp,newPassword} = req.body;
+
+  if(!email || ! otp || !newPassword){
+    return res.json({success:false,message:'Three not found'});
+  }
+
+  try{
+    const user = await userModel.findOne({email});
+    if(!user){
+      return res.json({success:false,message:'email not found'});
+    }
+
+    if(user.resetOtp === "" || user.resetOtp !== otp){
+      return res.json({success:false,message:'Three not found'});
+    }
+
+    if(user.resetOtpExpireAt < Date.now()){
+     return res.json({success:false,message:'otp exp not found'});
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetOtp = '';
+    user.resetOtpExpireAt = 0;
+    await user.save();
+
+    return res.json({success:true,message:'Password changed succesfully'});
+
+  }catch(error){
+    return res.json({success:false,message:error.message});
+  }
+}
+
+
