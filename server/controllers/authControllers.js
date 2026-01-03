@@ -209,7 +209,7 @@ export const verifyEmail = async(req,res)=>{
 }
 
 
-
+//is the otp authenticad
 export const isAuthenticated = async(req,res)=>{
   try{
     return res.json({success:true});
