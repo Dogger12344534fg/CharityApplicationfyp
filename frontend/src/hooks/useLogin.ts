@@ -6,6 +6,8 @@ import axios from "axios";
 interface LoginData {
   email: string;
   password: string;
+  remember?: boolean;
+  next?: string;
 }
 
 interface LoginResponse {
@@ -19,6 +21,9 @@ interface LoginResponse {
   message: string;
 }
 
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.com$/;
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const useLogin = () => {
@@ -26,24 +31,42 @@ const useLogin = () => {
 
   return useMutation<LoginResponse, Error, LoginData>({
     mutationFn: async (payload) => {
+
+      if (!payload.email || !payload.password) {
+        throw new Error("All fields are required.");
+      }
+
+      if (!EMAIL_REGEX.test(payload.email)) {
+        throw new Error("Please enter a valid email address ending with .com");
+      }
+
+      if (payload.password.trim().length === 0) {
+        throw new Error("Password is required.");
+      }
+
       const res = await axios.post<LoginResponse>(
         `${API_BASE_URL}/auth/login`,
-        payload,
+        {
+          email: payload.email.toLowerCase().trim(), 
+          password: payload.password,
+        },
       );
       return res.data;
     },
 
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("User", JSON.stringify(data.data));
 
-      if (data.data.role === "admin") {
+      toast.success(data.message);
+
+      if (variables.next) {
+        router.replace(variables.next);
+      } else if (data.data.role === "admin") {
         router.replace("/admin/");
       } else {
         router.replace("/");
       }
-
-      toast.success(data.message);
     },
 
     onError: (error) => {
@@ -51,6 +74,8 @@ const useLogin = () => {
 
       if (axios.isAxiosError(error)) {
         message = error.response?.data?.message || message;
+      } else if (error instanceof Error) {
+        message = error.message;
       }
 
       toast.error(message);

@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
+import { appMetaData } from "@/src/utils/metaData";
 import "@/src/app/globals.css";
-
+import { ToastContainer } from "react-toastify";
 import ReactQueryProvider from "@/src/app/(main)/(user)/providers/ReactQueryProvider";
 
-export const metadata: Metadata = {
-	title: "Setu – Fund Hope. Change Nepal.",
-	description: "Setu connects donors, charities, and communities across Nepal.",
-	keywords: ["donation", "charity", "Nepal", "crowdfunding", "disaster relief"],
-	icons: {
-		icon: "/image.png",
-	},
-};
+export const metadata: Metadata = appMetaData;
+
 export default function RootLayout({
 	children,
 }: {
@@ -18,10 +13,10 @@ export default function RootLayout({
 }) {
 	return (
 		<html lang="en">
-			<head></head>
 			<body className="antialiased">
 				<ReactQueryProvider>
-					<main>{children}</main>
+					<ToastContainer />
+					{children}
 				</ReactQueryProvider>
 			</body>
 		</html>

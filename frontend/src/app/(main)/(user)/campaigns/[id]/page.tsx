@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -22,8 +22,28 @@ import {
   Facebook,
   Twitter,
   Link2,
+  Send,
+  Image,
+  Trash2,
+  Loader2,
+  Pin,
 } from "lucide-react";
-import { useGetCampaignById } from "@/src/hooks/useCampaign";
+import {
+  useGetCampaignById,
+  useGetRecentCampaignDonors,
+} from "@/src/hooks/useCampaign";
+import {
+  useGetComments,
+  useAddComment,
+  useDeleteComment,
+  useLikeComment,
+  type Comment,
+} from "@/src/hooks/useComment";
+import {
+  useGetCampaignReactions,
+  useGetMyReaction,
+  useToggleReaction,
+} from "@/src/hooks/useReaction";
 
 const REACTIONS = [
   { emoji: "❤️", label: "Love", key: "love" },
@@ -34,7 +54,6 @@ const REACTIONS = [
 ];
 
 type ReactionKey = "love" | "support" | "sad" | "grateful" | "urgent";
-type ReactionCounts = Record<ReactionKey, number>;
 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString("en-NP", {
@@ -45,6 +64,18 @@ const fmtDate = (d: string) =>
 
 const fmtNPR = (n: number) =>
   n >= 100000 ? `NPR ${(n / 100000).toFixed(1)}L` : `NPR ${n.toLocaleString()}`;
+
+const fmtTimeAgo = (d: string) => {
+  const diff = Date.now() - new Date(d).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return fmtDate(d);
+};
 
 const daysLeft = (end?: string) => {
   if (!end) return null;
@@ -124,12 +155,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const MOCK_DONORS = [
-  { name: "Sita M.", amount: 2000, time: "2 mins ago", top: true },
-  { name: "Ramesh K.", amount: 5000, time: "14 mins ago", top: false },
-  { name: "Anonymous", amount: 500, time: "1 hr ago", top: false },
-  { name: "Priya S.", amount: 1000, time: "3 hrs ago", top: false },
-];
+
 
 export default function CampaignDetailPage() {
   const params = useParams();
@@ -137,36 +163,40 @@ export default function CampaignDetailPage() {
   const { data, isLoading, isError } = useGetCampaignById(id);
   const campaign = data?.data;
 
-  const [reactions, setReactions] = useState<ReactionCounts>({
-    love: 24,
-    support: 18,
-    sad: 9,
-    grateful: 31,
-    urgent: 14,
-  });
-  const [myReaction, setMyReaction] = useState<ReactionKey | null>(null);
+  // ── Reactions — wired to real API ─────────────────────────
+  const { data: reactionsData } = useGetCampaignReactions(id);
+  const { data: myReactionData } = useGetMyReaction(id);
+  const { mutate: toggleReaction, isPending: reacting } = useToggleReaction(id);
+
+  const reactions = reactionsData?.reactions;
+  const myReaction = myReactionData?.reactionType ?? null;
   const [popKey, setPopKey] = useState<ReactionKey | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
 
   const handleReaction = (key: ReactionKey) => {
-    if (myReaction === key) {
-      setReactions((r) => ({ ...r, [key]: r[key] - 1 }));
-      setMyReaction(null);
-    } else {
-      if (myReaction)
-        setReactions((r) => ({ ...r, [myReaction]: r[myReaction] - 1 }));
-      setReactions((r) => ({ ...r, [key]: r[key] + 1 }));
-      setMyReaction(key);
-      setPopKey(key);
-      setTimeout(() => setPopKey(null), 600);
-    }
+    if (reacting) return;
+    setPopKey(key);
+    setTimeout(() => setPopKey(null), 600);
+    toggleReaction(key);
   };
+
+  // ── Share ──────────────────────────────────────────────────
+  const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShare = (platform: "facebook" | "twitter") => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Support this campaign: ${campaign?.title ?? ""}`);
+    const shareUrl =
+      platform === "facebook"
+        ? `https://www.facebook.com/sharer/sharer.php?u=${url}`
+        : `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+    window.open(shareUrl, "_blank", "width=600,height=400,noopener,noreferrer");
   };
 
   if (isLoading)
@@ -228,6 +258,10 @@ export default function CampaignDetailPage() {
   const desc = campaign.description ?? "";
   const shortDesc = desc.length > 300 ? desc.slice(0, 300) + "…" : desc;
 
+  const totalReactions = reactions
+    ? Object.values(reactions).reduce((a, b) => a + b, 0)
+    : 0;
+
   return (
     <div
       className="bg-[#f5f5f0] min-h-screen"
@@ -250,6 +284,7 @@ export default function CampaignDetailPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+          {/* ── LEFT ── */}
           <div className="space-y-5">
             <div>
               <div className="flex flex-wrap gap-2 mb-3">
@@ -389,24 +424,26 @@ export default function CampaignDetailPage() {
               </div>
             </div>
 
+            {/* ── Reactions — wired to real API ── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_6px_rgba(0,0,0,0.05)] overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                 <p className="text-[14px] font-bold text-setu-800">
                   How does this make you feel?
                 </p>
                 <span className="text-[11px] text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full font-medium">
-                  {Object.values(reactions).reduce((a, b) => a + b, 0)}{" "}
-                  reactions
+                  {totalReactions} reactions
                 </span>
               </div>
               <div className="p-5 flex flex-wrap gap-2.5">
                 {REACTIONS.map(({ emoji, label, key }) => {
                   const isActive = myReaction === key;
                   const isPop = popKey === key;
+                  const count = reactions?.[key as ReactionKey] ?? 0;
                   return (
                     <button
                       key={key}
                       onClick={() => handleReaction(key as ReactionKey)}
+                      disabled={reacting}
                       className={[
                         "flex items-center gap-2 px-4 py-2.5 rounded-full border-2 text-[13px] font-semibold transition-all duration-200 cursor-pointer select-none",
                         isActive
@@ -426,7 +463,7 @@ export default function CampaignDetailPage() {
                       <span
                         className={`text-[12px] font-bold tabular-nums ${isActive ? "text-setu-600" : "text-gray-400"}`}
                       >
-                        {reactions[key as ReactionKey]}
+                        {count}
                       </span>
                     </button>
                   );
@@ -458,7 +495,6 @@ export default function CampaignDetailPage() {
                     </span>
                   </span>
                 </div>
-
                 <div className="h-5 bg-gray-100 rounded-full overflow-hidden mb-2 relative">
                   <div
                     className="h-full bg-gradient-to-r from-setu-700 via-setu-500 to-setu-400 rounded-full transition-all duration-700 flex items-center justify-end pr-2"
@@ -476,7 +512,6 @@ export default function CampaignDetailPage() {
                     {pct}% funded
                   </p>
                 )}
-
                 <div className="grid grid-cols-3 gap-3 mt-5">
                   {[
                     {
@@ -511,7 +546,6 @@ export default function CampaignDetailPage() {
                     </div>
                   ))}
                 </div>
-
                 {remaining > 0 && (
                   <div className="mt-4 p-3.5 bg-amber-50 border border-amber-100 rounded-xl text-center">
                     <p className="text-[12px] text-amber-700 font-semibold">
@@ -522,51 +556,10 @@ export default function CampaignDetailPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_6px_rgba(0,0,0,0.05)] overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-                <h2
-                  className="text-[17px] font-bold text-setu-950"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  Recent Donors
-                </h2>
-                <span className="text-[12px] font-semibold text-setu-600">
-                  {campaign.donorsCount.toLocaleString()} total
-                </span>
-              </div>
-              <div className="divide-y divide-gray-50">
-                {MOCK_DONORS.map((donor, i) => (
-                  <div key={i} className="flex items-center gap-4 px-6 py-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-setu-600 to-setu-400 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-[13px] font-bold">
-                        {donor.name[0]}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-semibold text-setu-900">
-                          {donor.name}
-                        </p>
-                        {donor.top && (
-                          <span className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold rounded-full">
-                            Top donor
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[12px] text-gray-400">{donor.time}</p>
-                    </div>
-                    <p className="text-[14px] font-bold text-setu-800 flex-shrink-0">
-                      {fmtNPR(donor.amount)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="px-6 py-4 border-t border-gray-50">
-                <button className="text-[13px] font-bold text-setu-600 hover:text-setu-500 transition-colors cursor-pointer border-none bg-transparent">
-                  See all donors →
-                </button>
-              </div>
-            </div>
+            <RecentDonorsSection campaignId={id} donorsCount={campaign.donorsCount} />
+
+            {/* ── Comments Section ── */}
+            <CommentsSection campaignId={id} />
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_6px_rgba(0,0,0,0.05)] p-6">
               <h2
@@ -580,10 +573,10 @@ export default function CampaignDetailPage() {
                 campaign. Help spread the word.
               </p>
               <div className="flex flex-wrap gap-3">
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1877F2] text-white text-[13px] font-bold rounded-xl hover:opacity-90 transition-opacity cursor-pointer border-none">
+                <button onClick={() => handleShare("facebook")} className="flex items-center gap-2 px-5 py-2.5 bg-[#1877F2] text-white text-[13px] font-bold rounded-xl hover:opacity-90 transition-opacity cursor-pointer border-none">
                   <Facebook className="w-4 h-4" /> Facebook
                 </button>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1DA1F2] text-white text-[13px] font-bold rounded-xl hover:opacity-90 transition-opacity cursor-pointer border-none">
+                <button onClick={() => handleShare("twitter")} className="flex items-center gap-2 px-5 py-2.5 bg-[#1DA1F2] text-white text-[13px] font-bold rounded-xl hover:opacity-90 transition-opacity cursor-pointer border-none">
                   <Twitter className="w-4 h-4" /> Twitter
                 </button>
                 <button
@@ -712,6 +705,7 @@ export default function CampaignDetailPage() {
             </Link>
           </div>
 
+          {/* ── RIGHT sticky ── */}
           <div className="hidden lg:block">
             <div className="sticky top-6 space-y-4">
               <DonateCard
@@ -747,10 +741,10 @@ export default function CampaignDetailPage() {
                   Share this campaign
                 </p>
                 <div className="flex flex-col gap-2">
-                  <button className="flex items-center justify-center gap-2 py-2.5 bg-[#1877F2] text-white text-[13px] font-semibold rounded-xl hover:opacity-90 transition-opacity cursor-pointer border-none w-full">
+                  <button onClick={() => handleShare("facebook")} className="flex items-center justify-center gap-2 py-2.5 bg-[#1877F2] text-white text-[13px] font-semibold rounded-xl hover:opacity-90 transition-opacity cursor-pointer border-none w-full">
                     <Facebook className="w-4 h-4" /> Share on Facebook
                   </button>
-                  <button className="flex items-center justify-center gap-2 py-2.5 bg-[#1DA1F2] text-white text-[13px] font-semibold rounded-xl hover:opacity-90 transition-opacity cursor-pointer border-none w-full">
+                  <button onClick={() => handleShare("twitter")} className="flex items-center justify-center gap-2 py-2.5 bg-[#1DA1F2] text-white text-[13px] font-semibold rounded-xl hover:opacity-90 transition-opacity cursor-pointer border-none w-full">
                     <Twitter className="w-4 h-4" /> Share on Twitter
                   </button>
                   <button
@@ -824,6 +818,339 @@ export default function CampaignDetailPage() {
   );
 }
 
+// ── Recent Donors Section ──────────────────────────────────────────
+function RecentDonorsSection({
+  campaignId,
+  donorsCount,
+}: {
+  campaignId: string;
+  donorsCount: number;
+}) {
+  const { data, isLoading } = useGetRecentCampaignDonors(campaignId, 5);
+  const donors = data?.donors ?? [];
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_6px_rgba(0,0,0,0.05)] overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+        <h2
+          className="text-[17px] font-bold text-setu-950"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Recent Donors
+        </h2>
+        <span className="text-[12px] font-semibold text-setu-600">
+          {donorsCount.toLocaleString()} total
+        </span>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-10">
+          <Loader2 className="w-5 h-5 animate-spin text-setu-400" />
+          <span className="text-[13px] text-gray-400">Loading donors…</span>
+        </div>
+      ) : donors.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-1.5">
+          <Heart className="w-8 h-8 text-setu-200" />
+          <p className="text-[14px] font-bold text-setu-800">Be the first donor!</p>
+          <p className="text-[12px] text-gray-400">No donations yet. Your support can start it.</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-50">
+          {donors.map((donor) => (
+            <div key={String(donor._id)} className="flex items-center gap-4 px-6 py-4">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-setu-600 to-setu-400 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {donor.avatar?.url ? (
+                  <img src={donor.avatar.url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white text-[13px] font-bold">
+                    {donor.name[0]?.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-[14px] font-semibold text-setu-900">{donor.name}</p>
+                  {donor.isTop && (
+                    <span className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold rounded-full">
+                      Top donor
+                    </span>
+                  )}
+                </div>
+                <p className="text-[12px] text-gray-400">{fmtTimeAgo(donor.paidAt)}</p>
+              </div>
+              <p className="text-[14px] font-bold text-setu-800 flex-shrink-0">
+                {fmtNPR(donor.amount)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Comments Section ───────────────────────────────────────────
+function CommentsSection({ campaignId }: { campaignId: string }) {
+  const { data, isLoading } = useGetComments(campaignId, { limit: 20 });
+  const { mutate: addComment, isPending: posting } = useAddComment(campaignId);
+  const { mutate: deleteComment } = useDeleteComment(campaignId);
+  const { mutate: likeComment } = useLikeComment(campaignId);
+
+  const [text, setText] = useState("");
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const mediaRef = useRef<HTMLInputElement>(null);
+
+  const comments = data?.comments ?? [];
+  const total = data?.pagination?.total ?? 0;
+
+  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const remaining = 4 - mediaFiles.length;
+    const toAdd = files.slice(0, remaining);
+    setMediaFiles((prev) => [...prev, ...toAdd]);
+    setPreviews((prev) => [
+      ...prev,
+      ...toAdd.map((f) => URL.createObjectURL(f)),
+    ]);
+    if (mediaRef.current) mediaRef.current.value = "";
+  };
+
+  const removeMedia = (i: number) => {
+    setMediaFiles((prev) => prev.filter((_, idx) => idx !== i));
+    setPreviews((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() && mediaFiles.length === 0) return;
+    addComment(
+      { campaignId, text: text.trim(), media: mediaFiles },
+      {
+        onSuccess: () => {
+          setText("");
+          setMediaFiles([]);
+          setPreviews([]);
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_6px_rgba(0,0,0,0.05)] overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+        <h2
+          className="text-[17px] font-bold text-setu-950"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Comments
+        </h2>
+        <span className="text-[12px] font-semibold text-setu-600">
+          {total} comment{total !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Add comment form */}
+      <form onSubmit={handleSubmit} className="p-5 border-b border-gray-50">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Share a message of support, update, or question…"
+          rows={3}
+          maxLength={2000}
+          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] text-setu-900 placeholder-gray-400 focus:outline-none focus:border-setu-400 focus:bg-white transition-all resize-none"
+        />
+
+        {/* Media previews */}
+        {previews.length > 0 && (
+          <div className="flex gap-2 flex-wrap mt-3">
+            {previews.map((src, i) => (
+              <div
+                key={i}
+                className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200"
+              >
+                <img src={src} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeMedia(i)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center cursor-pointer border-none"
+                >
+                  <span className="text-white text-[10px] font-bold leading-none">
+                    ×
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex gap-2">
+            <input
+              ref={mediaRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleMediaChange}
+              className="hidden"
+            />
+            {mediaFiles.length < 4 && (
+              <button
+                type="button"
+                onClick={() => mediaRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[12px] font-semibold rounded-lg transition-colors cursor-pointer border-none"
+              >
+                <Image className="w-3.5 h-3.5" /> Photo/Video
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={posting || (!text.trim() && mediaFiles.length === 0)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-setu-700 hover:bg-setu-600 disabled:bg-setu-300 text-white text-[13px] font-bold rounded-xl transition-all cursor-pointer border-none disabled:cursor-not-allowed"
+          >
+            {posting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Send className="w-3.5 h-3.5" />
+            )}
+            {posting ? "Posting…" : "Post"}
+          </button>
+        </div>
+      </form>
+
+      {/* Comments list */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-10 gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-setu-400" />
+          <span className="text-[13px] text-gray-400">Loading comments…</span>
+        </div>
+      ) : comments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-2">
+          <p className="text-[14px] font-bold text-setu-800">No comments yet</p>
+          <p className="text-[13px] text-gray-400">
+            Be the first to share a message of support.
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-50">
+          {comments.map((comment) => (
+            <CommentItem
+              key={comment._id}
+              comment={comment}
+              onDelete={() => deleteComment(comment._id)}
+              onLike={() => likeComment(comment._id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Single Comment ─────────────────────────────────────────────
+function CommentItem({
+  comment,
+  onDelete,
+  onLike,
+}: {
+  comment: Comment;
+  onDelete: () => void;
+  onLike: () => void;
+}) {
+  return (
+    <div className={`px-6 py-4 ${comment.pinned ? "bg-setu-50" : ""}`}>
+      <div className="flex items-start gap-3">
+        {/* Avatar */}
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-setu-700 to-setu-400 flex items-center justify-center flex-shrink-0">
+          {comment.author?.avatar?.url ? (
+            <img
+              src={comment.author.avatar.url}
+              alt=""
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            <span className="text-white text-[13px] font-bold">
+              {comment.author?.name?.[0]?.toUpperCase()}
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {/* Header */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[13px] font-bold text-setu-900">
+              {comment.author?.name}
+            </p>
+            {comment.pinned && (
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-setu-50 border border-setu-200 text-setu-600 text-[10px] font-bold rounded-full">
+                <Pin className="w-2.5 h-2.5" /> Pinned
+              </span>
+            )}
+            <span className="text-[11px] text-gray-400 ml-auto">
+              {fmtTimeAgo(comment.createdAt)}
+            </span>
+          </div>
+
+          {/* Text */}
+          {comment.text && (
+            <p className="text-[14px] text-gray-600 leading-relaxed mt-1">
+              {comment.text}
+            </p>
+          )}
+
+          {/* Media */}
+          {comment.media?.length > 0 && (
+            <div className="flex gap-2 flex-wrap mt-2.5">
+              {comment.media.map((m, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl overflow-hidden border border-gray-100 max-w-[200px]"
+                >
+                  {m.type === "video" ? (
+                    <video
+                      src={m.url}
+                      controls
+                      className="max-w-full rounded-xl"
+                    />
+                  ) : (
+                    <img
+                      src={m.url}
+                      alt=""
+                      className="max-w-full object-cover rounded-xl"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 mt-2">
+            <button
+              onClick={onLike}
+              className="flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-setu-600 transition-colors cursor-pointer border-none bg-transparent"
+            >
+              <Heart className="w-3.5 h-3.5" />
+              {comment.likesCount > 0 && (
+                <span className="font-semibold">{comment.likesCount}</span>
+              )}
+            </button>
+            <button
+              onClick={onDelete}
+              className="flex items-center gap-1 text-[12px] text-gray-300 hover:text-red-400 transition-colors cursor-pointer border-none bg-transparent ml-auto"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Donate Card ────────────────────────────────────────────────
 function DonateCard({
   campaign,
   pct,
@@ -838,8 +1165,12 @@ function DonateCard({
   campaignId: string;
 }) {
   const QUICK = [500, 1000, 2500, 5000];
+  const MAX_AMOUNT = 30000;
   const [sel, setSel] = useState<number | null>(null);
   const [custom, setCustom] = useState("");
+
+  const customNum = custom ? parseInt(custom) : 0;
+  const overMax = (sel !== null && sel > MAX_AMOUNT) || (custom !== "" && customNum > MAX_AMOUNT);
 
   const displayAmt = sel
     ? `NPR ${sel.toLocaleString()}`
@@ -863,7 +1194,6 @@ function DonateCard({
           </span>{" "}
           goal
         </p>
-
         <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden mb-2">
           <div
             className="h-full bg-gradient-to-r from-setu-700 to-setu-400 rounded-full"
@@ -877,10 +1207,6 @@ function DonateCard({
             {left !== null && <span>· {left}d left</span>}
           </div>
         </div>
-
-        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-gray-400 mb-2">
-          Choose amount
-        </p>
         <div className="grid grid-cols-4 gap-2 mb-3">
           {QUICK.map((amt) => (
             <button
@@ -892,15 +1218,14 @@ function DonateCard({
               className={[
                 "py-2.5 rounded-xl text-[12px] font-bold border-2 transition-all cursor-pointer",
                 sel === amt
-                  ? "bg-setu-700 text-white border-setu-700 shadow-[0_2px_8px_rgba(21,104,57,0.3)]"
-                  : "bg-white text-setu-700 border-gray-200 hover:border-setu-300 hover:bg-setu-50",
+                  ? "bg-setu-700 text-white border-setu-700"
+                  : "bg-white text-setu-700 border-gray-200 hover:border-setu-300",
               ].join(" ")}
             >
               {amt >= 1000 ? `${amt / 1000}K` : amt}
             </button>
           ))}
         </div>
-
         <div className="relative mb-4">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-gray-400 pointer-events-none">
             NPR
@@ -913,26 +1238,35 @@ function DonateCard({
               setCustom(e.target.value);
               setSel(null);
             }}
-            className="w-full pl-14 pr-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-[13px] text-setu-900 focus:outline-none focus:border-setu-400 focus:bg-white transition-all placeholder:text-gray-300"
+            className={`w-full pl-14 pr-4 py-3 bg-gray-50 border-2 rounded-xl text-[13px] text-setu-900 focus:outline-none focus:bg-white transition-all placeholder:text-gray-300 ${
+              overMax ? "border-red-400 focus:border-red-500" : "border-gray-100 focus:border-setu-400"
+            }`}
           />
+          {overMax && (
+            <p className="text-[11px] text-red-500 font-semibold mt-1.5 flex items-center gap-1">
+              <span>⚠</span> Maximum donation per transaction is NPR 30,000
+            </p>
+          )}
         </div>
-
         <Link
-          href={`/campaigns/${campaignId}/donate`}
-          className="w-full py-4 bg-setu-700 hover:bg-setu-600 text-white font-bold rounded-xl text-[15px] transition-all shadow-[0_4px_14px_rgba(21,104,57,0.3)] hover:-translate-y-0.5 no-underline flex items-center justify-center"
+          href={overMax ? "#" : `/campaigns/${campaignId}/donate${sel || customNum > 0 ? `?amount=${sel ?? customNum}` : ""}`}
+          onClick={(e) => { if (overMax) e.preventDefault(); }}
+          className={`w-full py-4 font-bold rounded-xl text-[15px] transition-all no-underline flex items-center justify-center ${
+            overMax
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-setu-700 hover:bg-setu-600 text-white shadow-[0_4px_14px_rgba(21,104,57,0.3)] hover:-translate-y-0.5"
+          }`}
         >
-          {displayAmt ? `Donate ${displayAmt}` : "Donate Now"}
+          {displayAmt && !overMax ? `Donate ${displayAmt}` : overMax ? "Amount exceeds limit" : "Donate Now"}
         </Link>
-
         {remaining > 0 && (
           <p className="text-[11px] text-center text-amber-600 font-semibold mt-3">
             {fmtNPR(remaining)} still needed
           </p>
         )}
-
         <p className="text-[11px] text-center text-gray-400 mt-2 flex items-center justify-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-setu-400" />
-          Secure · Verified by Setu
+          <ShieldCheck className="w-3.5 h-3.5 text-setu-400" /> Secure ·
+          Verified by Setu
         </p>
       </div>
     </div>

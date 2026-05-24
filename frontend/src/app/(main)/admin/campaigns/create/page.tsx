@@ -24,6 +24,9 @@ import {
 	Tag,
 	CheckCircle2,
 	XCircle,
+	Navigation,
+	FileCheck,
+	Trash2,
 } from "lucide-react";
 import { Toaster, toast } from "sonner"; // ← FIX 1: added toast
 import { useCreateCampaign } from "@/src/hooks/useCampaign";
@@ -90,6 +93,15 @@ const durations = [
 	{ key: "90", label: "90 days" },
 ];
 
+const DOC_TYPES = [
+	{ value: "wada_registration", label: "Wada Registration" },
+	{ value: "ngo_certificate", label: "NGO Certificate" },
+	{ value: "tax_clearance", label: "Tax Clearance" },
+	{ value: "bank_details", label: "Bank Details" },
+	{ value: "identity", label: "Identity Document" },
+	{ value: "other", label: "Other" },
+];
+
 const tips = [
 	{
 		heading: "A strong title matters",
@@ -121,6 +133,10 @@ export default function CreateCampaignPage() {
 	const [step, setStep] = useState(1);
 	const [focused, setFocused] = useState<string | null>(null);
 	const fileRef = useRef<HTMLInputElement>(null);
+	const docRef = useRef<HTMLInputElement>(null);
+	const [docFiles, setDocFiles] = useState<
+		{ file: File; name: string; docType: string }[]
+	>([]);
 	const [coverPreview, setCoverPreview] = useState<string | null>(null);
 	const [coverFile, setCoverFile] = useState<File | null>(null);
 
@@ -152,6 +168,33 @@ export default function CreateCampaignPage() {
 		if (!file) return;
 		setCoverFile(file);
 		setCoverPreview(URL.createObjectURL(file));
+	};
+
+	const handleDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(e.target.files ?? []);
+		if (!files.length) return;
+		const remaining = 5 - docFiles.length;
+		const toAdd = files.slice(0, remaining).map((file) => ({
+			file,
+			name: file.name.replace(/\.[^/.]+$/, ""),
+			docType: "other",
+		}));
+		setDocFiles((prev) => [...prev, ...toAdd]);
+		if (docRef.current) docRef.current.value = "";
+	};
+
+	const removeDoc = (index: number) => {
+		setDocFiles((prev) => prev.filter((_, i) => i !== index));
+	};
+
+	const updateDocMeta = (
+		index: number,
+		field: "name" | "docType",
+		value: string,
+	) => {
+		setDocFiles((prev) =>
+			prev.map((d, i) => (i === index ? { ...d, [field]: value } : d)),
+		);
 	};
 
 	const handleMapSelect = useCallback(
@@ -211,6 +254,9 @@ export default function CreateCampaignPage() {
 				latitude: form.latitude,
 				country: "Nepal",
 				image: coverFile,
+				documents: docFiles.map((d) => d.file),
+				documentNames: docFiles.map((d) => d.name),
+				documentTypes: docFiles.map((d) => d.docType),
 			},
 			{ onSuccess: () => router.push("/admin/campaigns") },
 		);
@@ -663,30 +709,105 @@ export default function CreateCampaignPage() {
 												</div>
 											</div>
 
-											{/* Supporting doc */}
+											{/* Verification Documents */}
 											<div>
-												<label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
-													Supporting Document{" "}
-													<span className="text-gray-400 normal-case font-normal tracking-normal">
-														(optional, speeds up verification)
-													</span>
+												<label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-1">
+													Verification Documents
+													<span className="text-gray-400 normal-case font-normal tracking-normal ml-1">
+														(recommended — speeds up approval)
+													</span>{" "}
+													<span className="text-red-400">*</span>
 												</label>
-												<button
-													type="button"
-													className="w-full flex items-center gap-4 px-5 py-4 bg-white border border-dashed border-setu-200 hover:border-setu-400 hover:bg-setu-50 rounded-xl transition-all cursor-pointer">
-													<div className="w-10 h-10 bg-setu-50 rounded-xl flex items-center justify-center flex-shrink-0">
-														<Upload className="w-4 h-4 text-setu-500" />
+												<p className="text-[11px] text-gray-400 mb-3">
+													Upload ward registration, NGO certificate, tax
+													clearance or any official document that proves the
+													campaign's legitimacy. Max 5 files, 20MB each.
+												</p>
+
+												<input
+													ref={docRef}
+													type="file"
+													accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+													multiple
+													onChange={handleDocChange}
+													className="hidden"
+												/>
+
+												{docFiles.length < 5 && (
+													<button
+														type="button"
+														onClick={() => docRef.current?.click()}
+														className="w-full flex items-center gap-4 px-5 py-4 bg-white border-2 border-dashed border-setu-200 hover:border-setu-400 hover:bg-setu-50 rounded-xl transition-all cursor-pointer mb-3">
+														<div className="w-10 h-10 bg-setu-50 rounded-xl flex items-center justify-center flex-shrink-0">
+															<Upload className="w-4 h-4 text-setu-500" />
+														</div>
+														<div className="text-left">
+															<p className="text-[13px] font-semibold text-setu-700">
+																Upload PDF, image or document
+															</p>
+															<p className="text-[11px] text-gray-400">
+																Ward registration, NGO letter, bank details —{" "}
+																{5 - docFiles.length} slot
+																{5 - docFiles.length !== 1 ? "s" : ""} remaining
+															</p>
+														</div>
+													</button>
+												)}
+
+												{docFiles.length > 0 && (
+													<div className="space-y-2.5">
+														{docFiles.map((doc, i) => (
+															<div
+																key={i}
+																className="bg-setu-50 border border-setu-200 rounded-xl p-3.5">
+																<div className="flex items-start gap-3">
+																	<div className="w-9 h-9 bg-setu-700 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+																		<FileCheck className="w-4 h-4 text-white" />
+																	</div>
+																	<div className="flex-1 min-w-0 space-y-2">
+																		<input
+																			type="text"
+																			value={doc.name}
+																			onChange={(e) =>
+																				updateDocMeta(i, "name", e.target.value)
+																			}
+																			placeholder="Document name"
+																			className="w-full px-3 py-2 bg-white border border-setu-200 rounded-lg text-[13px] font-semibold text-setu-900 focus:outline-none focus:border-setu-400 transition-colors"
+																		/>
+																		<select
+																			value={doc.docType}
+																			onChange={(e) =>
+																				updateDocMeta(
+																					i,
+																					"docType",
+																					e.target.value,
+																				)
+																			}
+																			className="w-full px-3 py-2 bg-white border border-setu-200 rounded-lg text-[12px] text-setu-700 focus:outline-none focus:border-setu-400 transition-colors cursor-pointer">
+																			{DOC_TYPES.map(({ value, label }) => (
+																				<option
+																					key={value}
+																					value={value}>
+																					{label}
+																				</option>
+																			))}
+																		</select>
+																		<p className="text-[10px] text-gray-400 truncate">
+																			{doc.file.name} ·{" "}
+																			{(doc.file.size / 1024).toFixed(0)} KB
+																		</p>
+																	</div>
+																	<button
+																		type="button"
+																		onClick={() => removeDoc(i)}
+																		className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent flex-shrink-0 mt-0.5">
+																		<Trash2 className="w-4 h-4" />
+																	</button>
+																</div>
+															</div>
+														))}
 													</div>
-													<div className="text-left">
-														<p className="text-[13px] font-semibold text-setu-700">
-															Upload PDF or image
-														</p>
-														<p className="text-[11px] text-gray-400">
-															Hospital records, government letters, photos — max
-															20MB
-														</p>
-													</div>
-												</button>
+												)}
 											</div>
 										</>
 									)}

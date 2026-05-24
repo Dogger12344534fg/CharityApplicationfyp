@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Eye,
   EyeOff,
@@ -18,6 +19,9 @@ import { Toaster, toast } from "sonner";
 import useLogin from "@/src/hooks/useLogin";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const nextUrl = searchParams.get("next") ?? "";
+
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const loginMutation = useLogin();
@@ -29,7 +33,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation.mutate(form);
+    loginMutation.mutate({ ...form, ...(nextUrl ? { next: nextUrl } : {}) });
   };
 
   return (
@@ -87,34 +91,17 @@ export default function LoginPage() {
 
           <div className="absolute top-10 left-10 z-10">
             <Link
-              href="/"
-              className="flex items-center gap-2.5 no-underline flex-shrink-0 group"
+            href="/"
+            className="flex items-center gap-2.5 no-underline flex-shrink-0 group"
+          >
+            <SetuLogo size={44} />
+            <span
+              className="text-[1.5rem] font-bold text-white leading-none tracking-[-0.3px]"
+              style={{ fontFamily: "var(--font-display)" }}
             >
-              <div
-                className={[
-                  "relative w-9 h-9 rounded-[10px] flex items-center justify-center",
-                  "bg-setu-100 group-hover:bg-setu-200",
-                  "shadow-[0_4px_12px_rgba(21,104,57,0.15)]",
-                  "transition-all duration-200",
-                ].join(" ")}
-              >
-                <Heart
-                  className="w-8 h-8 text-setu-700"
-                  strokeWidth={1.6}
-                  fill="none"
-                />
-                <Handshake
-                  className="absolute w-5 h-5 text-setu-700"
-                  strokeWidth={1.6}
-                />
-              </div>
-              <span
-                className="text-[1.5rem] font-bold text-setu-950 leading-none tracking-[-0.3px]"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                Setu
-              </span>
-            </Link>
+              Setu
+            </span>
+          </Link>
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-12 z-10">
@@ -130,7 +117,7 @@ export default function LoginPage() {
               <em className="italic text-setu-300">changes a life.</em>
             </h2>
             <p className="text-white/55 text-base leading-relaxed max-w-sm mb-8">
-              Join 18,000+ donors building a kinder Nepal — one campaign at a
+              Join 18+ donors building a kinder Nepal — one campaign at a
               time.
             </p>
 
@@ -143,7 +130,7 @@ export default function LoginPage() {
                 />
                 <div>
                   <p className="text-white text-sm font-semibold">
-                    Ramesh Shrestha
+                    Nabin Lamsal
                   </p>
                   <p className="text-setu-300 text-xs">Top Donor · Kathmandu</p>
                 </div>
@@ -163,24 +150,6 @@ export default function LoginPage() {
                 "Setu made it so simple to help flood victims. I could see
                 exactly where my money went. This platform is a true bridge."
               </p>
-            </div>
-
-            <div className="flex items-center gap-8">
-              {[
-                { n: "NPR 2.4Cr+", l: "Raised" },
-                { n: "1,200+", l: "Campaigns" },
-                { n: "18K+", l: "Donors" },
-              ].map(({ n, l }) => (
-                <div key={l}>
-                  <p
-                    className="text-xl font-bold text-white"
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    {n}
-                  </p>
-                  <p className="text-xs text-setu-400 mt-0.5">{l}</p>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -344,6 +313,9 @@ export default function LoginPage() {
 
             <button
               type="button"
+              onClick={() =>
+                (window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google`)
+              }
               className="w-full flex items-center justify-center gap-3 py-3.5 bg-white border border-setu-200 hover:border-setu-300 hover:bg-setu-50 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-150 shadow-sm hover:shadow"
             >
               <svg
@@ -392,5 +364,95 @@ export default function LoginPage() {
         </div>
       </div>
     </>
+  );
+}
+
+function SetuLogo({ size = 44 }: { size?: number }) {
+  return (
+    <svg
+      viewBox="0 0 56 56"
+      width={size}
+      height={size}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Outer rounded square background */}
+      <rect x="2" y="2" width="52" height="52" rx="13" fill="#e8f7ee" />
+
+      {/* Bridge arch */}
+      <path
+        d="M10 36 Q28 10 46 36"
+        stroke="#1a6e39"
+        strokeWidth="3.8"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      {/* Bridge deck */}
+      <line
+        x1="6"
+        y1="36"
+        x2="50"
+        y2="36"
+        stroke="#1a6e39"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+      />
+
+      {/* Suspension verticals */}
+      <line
+        x1="20"
+        y1="24"
+        x2="20"
+        y2="36"
+        stroke="#4dbf7a"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <line
+        x1="28"
+        y1="19"
+        x2="28"
+        y2="36"
+        stroke="#4dbf7a"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <line
+        x1="36"
+        y1="24"
+        x2="36"
+        y2="36"
+        stroke="#4dbf7a"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+
+      {/* Heart at apex */}
+      <path
+        d="M28 31 C28 31 22 26.5 22 23 C22 20.8 24 19 28 22 C32 19 34 20.8 34 23 C34 26.5 28 31 28 31Z"
+        fill="#2aa558"
+      />
+
+      {/* Pillars */}
+      <line
+        x1="12"
+        y1="36"
+        x2="12"
+        y2="44"
+        stroke="#1a6e39"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="44"
+        y1="36"
+        x2="44"
+        y2="44"
+        stroke="#1a6e39"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

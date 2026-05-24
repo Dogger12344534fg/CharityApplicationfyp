@@ -5,7 +5,7 @@ import { LucideIcon, Edit2, Trash2, CheckCircle, XCircle, Eye } from 'lucide-rea
 interface ActionButtonProps {
   icon?: LucideIcon
   label?: string
-  variant: 'approve' | 'reject' | 'edit' | 'delete' | 'view'
+  variant: 'approve' | 'reject' | 'edit' | 'delete' | 'view' | 'info'
   onClick?: () => void
   disabled?: boolean
   size?: 'sm' | 'md'
@@ -17,6 +17,7 @@ const variantClasses = {
   edit: 'text-blue-600 hover:bg-blue-50 border-blue-200',
   delete: 'text-red-600 hover:bg-red-50 border-red-200',
   view: 'text-setu-600 hover:bg-setu-50 border-setu-200',
+  info: 'text-blue-600 hover:bg-blue-50 border-blue-200',
 }
 
 const sizeClasses = {
@@ -30,6 +31,7 @@ const defaultIcons = {
   edit: Edit2,
   delete: Trash2,
   view: Eye,
+  info: Eye, // Fallback icon
 }
 
 const defaultLabels = {
@@ -38,6 +40,7 @@ const defaultLabels = {
   edit: 'Edit',
   delete: 'Delete',
   view: 'View',
+  info: 'Info',
 }
 
 export function ActionButton({

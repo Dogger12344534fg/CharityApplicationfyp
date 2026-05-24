@@ -1,6 +1,3 @@
-// ═══════════════════════════════════════════════
-// PRIVACY POLICY — app/(main)/privacy/page.tsx
-// ═══════════════════════════════════════════════
 import Link from "next/link";
 import { Shield, Lock, Eye, Database, Mail, ChevronRight } from "lucide-react";
 
@@ -62,7 +59,7 @@ const sections = [
       },
       {
         subtitle: "Payment Processors",
-        text: "We share transaction data with certified payment partners (eSewa, Khalti, banks) solely to process your donations.",
+        text: "We share transaction data with certified payment partners (eSewa) solely to process your donations.",
       },
       {
         subtitle: "Campaign Creators",
@@ -84,10 +81,6 @@ const sections = [
         text: "All data is encrypted in transit using 256-bit SSL/TLS. Sensitive data at rest is encrypted using AES-256.",
       },
       {
-        subtitle: "Access Controls",
-        text: "Only authorized Setu staff with a legitimate need can access user data. Access is logged and audited regularly.",
-      },
-      {
         subtitle: "Incident Response",
         text: "In the event of a data breach, we commit to notifying affected users within 72 hours and cooperating fully with relevant authorities.",
       },
@@ -100,7 +93,7 @@ const sections = [
     content: [
       {
         subtitle: "Access & Portability",
-        text: "You can request a copy of all data we hold about you at any time from your account settings or by emailing privacy@setu.np.",
+        text: "You can request a copy of all data we hold about you at any time from your account settings or by emailing dipendraroka947@gmail.com.",
       },
       {
         subtitle: "Correction",
@@ -118,6 +111,135 @@ const sections = [
   },
 ];
 
+function PrivacyIllustration() {
+  return (
+    <svg
+      viewBox="0 0 380 280"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      aria-hidden="true"
+    >
+      {/* Background blob */}
+      <ellipse cx="190" cy="148" rx="168" ry="118" fill="#f0faf4" />
+
+      {/* Main shield body */}
+      <path
+        d="M190 42 L260 72 L260 148 C260 192 226 222 190 238 C154 222 120 192 120 148 L120 72 Z"
+        fill="#156839"
+      />
+      {/* Shield inner highlight */}
+      <path
+        d="M190 58 L248 84 L248 148 C248 185 218 212 190 226 C162 212 132 185 132 148 L132 84 Z"
+        fill="#1a8048"
+      />
+      {/* Shield inner glow layer */}
+      <path
+        d="M190 74 L236 96 L236 148 C236 178 212 200 190 212 C168 200 144 178 144 148 L144 96 Z"
+        fill="#156839"
+        opacity="0.6"
+      />
+
+      {/* Lock body */}
+      <rect x="172" y="140" width="36" height="28" rx="5" fill="white" />
+      {/* Lock shackle */}
+      <path
+        d="M179 140 L179 130 Q179 118 190 118 Q201 118 201 130 L201 140"
+        stroke="white"
+        strokeWidth="5"
+        fill="none"
+        strokeLinecap="round"
+      />
+      {/* Lock keyhole */}
+      <circle cx="190" cy="153" r="4" fill="#156839" />
+      <rect x="188" y="155" width="4" height="7" rx="1" fill="#156839" />
+
+      {/* Checkmark badge — top right of shield */}
+      <circle cx="248" cy="78" r="16" fill="#22c55e" />
+      <path
+        d="M241 78 L246 83 L255 72"
+        stroke="white"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+
+      {/* Data line cards — left side */}
+      <rect x="32" y="100" width="74" height="16" rx="5" fill="white" />
+      <rect x="38" y="106" width="16" height="4" rx="2" fill="#86efac" />
+      <rect x="58" y="106" width="28" height="4" rx="2" fill="#d1fae5" />
+
+      <rect x="24" y="124" width="82" height="16" rx="5" fill="white" />
+      <rect x="30" y="130" width="16" height="4" rx="2" fill="#86efac" />
+      <rect x="50" y="130" width="36" height="4" rx="2" fill="#d1fae5" />
+
+      <rect x="32" y="148" width="70" height="16" rx="5" fill="white" />
+      <rect x="38" y="154" width="16" height="4" rx="2" fill="#86efac" />
+      <rect x="58" y="154" width="22" height="4" rx="2" fill="#d1fae5" />
+
+      {/* Arrow pointing to shield from data cards */}
+      <path
+        d="M106 140 L118 140"
+        stroke="#4ade80"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeDasharray="3 3"
+      />
+
+      {/* Encrypted output cards — right side */}
+      <rect x="274" y="100" width="78" height="16" rx="5" fill="white" />
+      <rect x="280" y="106" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="292" y="106" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="304" y="106" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="316" y="106" width="26" height="4" rx="2" fill="#86efac" />
+
+      <rect x="278" y="124" width="74" height="16" rx="5" fill="white" />
+      <rect x="284" y="130" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="296" y="130" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="308" y="130" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="320" y="130" width="22" height="4" rx="2" fill="#86efac" />
+
+      <rect x="274" y="148" width="78" height="16" rx="5" fill="white" />
+      <rect x="280" y="154" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="292" y="154" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="304" y="154" width="8" height="4" rx="2" fill="#d1fae5" />
+      <rect x="316" y="154" width="26" height="4" rx="2" fill="#86efac" />
+
+      {/* Arrow from shield to encrypted output */}
+      <path
+        d="M262 140 L272 140"
+        stroke="#4ade80"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeDasharray="3 3"
+      />
+
+      {/* Floating dots */}
+      <circle cx="44" cy="82" r="5" fill="#86efac" opacity="0.65" />
+      <circle cx="338" cy="82" r="4" fill="#4ade80" opacity="0.6" />
+      <circle cx="326" cy="200" r="6" fill="#86efac" opacity="0.5" />
+      <circle cx="52" cy="200" r="4" fill="#4ade80" opacity="0.5" />
+      <circle cx="190" cy="36" r="3" fill="#156839" opacity="0.4" />
+
+      {/* Bottom pill label */}
+      <rect x="120" y="230" width="140" height="28" rx="14" fill="#156839" />
+      <text
+        x="190"
+        y="249"
+        textAnchor="middle"
+        fill="white"
+        fontSize="11"
+        fontWeight="700"
+        fontFamily="sans-serif"
+        letterSpacing="0.5"
+      >
+        Your Data, Protected
+      </text>
+    </svg>
+  );
+}
+
 export function PrivacyPage() {
   return (
     <div
@@ -125,24 +247,33 @@ export function PrivacyPage() {
       style={{ fontFamily: "var(--font-body)" }}
     >
       <section className="bg-white border-b border-setu-100 py-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-setu-600 mb-4">
-            <div className="w-6 h-[2px] bg-setu-500 rounded" />
-            Legal
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+          {/* Text */}
+          <div className="flex-1">
+            <div className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-setu-600 mb-4">
+              <div className="w-6 h-[2px] bg-setu-500 rounded" />
+              Legal
+            </div>
+            <h1
+              className="text-[clamp(32px,4.5vw,54px)] font-bold text-setu-950 leading-tight tracking-[-1px] mb-4"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Privacy Policy
+            </h1>
+            <p className="text-[15px] text-setu-800/55 leading-[1.75] max-w-lg mb-3">
+              Your privacy matters to us. This policy explains what data we
+              collect, how we use it, and your rights as a Setu user.
+            </p>
+            <p className="text-[13px] text-setu-600/50 font-medium">
+              Last updated: January 1, 2025 · Effective: January 1, 2025
+            </p>
           </div>
-          <h1
-            className="text-[clamp(32px,4.5vw,54px)] font-bold text-setu-950 leading-tight tracking-[-1px] mb-4"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Privacy Policy
-          </h1>
-          <p className="text-[15px] text-setu-800/55 leading-[1.75] max-w-lg mb-3">
-            Your privacy matters to us. This policy explains what data we
-            collect, how we use it, and your rights as a Setu user.
-          </p>
-          <p className="text-[13px] text-setu-600/50 font-medium">
-            Last updated: January 1, 2025 · Effective: January 1, 2025
-          </p>
+          {/* Illustration */}
+          <div className="w-full lg:w-[380px] flex-shrink-0">
+            <div className="bg-white rounded-2xl border border-setu-100 p-4 shadow-[0_2px_12px_rgba(21,104,57,0.05)]">
+              <PrivacyIllustration />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -167,10 +298,10 @@ export function PrivacyPage() {
                 ))}
                 <div className="mt-4 pt-4 border-t border-setu-100">
                   <a
-                    href="mailto:privacy@setu.np"
+                    href="mailto:dipendraroka947@gmail.com"
                     className="text-[12px] font-semibold text-setu-600 hover:text-setu-700 no-underline"
                   >
-                    privacy@setu.np
+                    dipendraroka947@gmail.com
                   </a>
                 </div>
               </div>
@@ -231,7 +362,7 @@ export function PrivacyPage() {
                   your rights, contact us at:
                 </p>
                 <a
-                  href="mailto:privacy@setu.np"
+                  href="mailto:dipendraroka947@gmail.com"
                   className="inline-flex items-center gap-2 text-[14px] font-bold text-setu-300 no-underline hover:text-setu-200 transition-colors"
                 >
                   <Mail className="w-4 h-4" />

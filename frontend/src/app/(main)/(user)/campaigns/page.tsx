@@ -23,6 +23,7 @@ import {
 	type Campaign as ApiCampaign,
 } from "@/src/hooks/useCampaign";
 import { useGetCategories } from "@/src/hooks/useCategory";
+import { usePublicStats, formatNPR, formatCount } from "@/src/hooks/usePublicStats";
 
 const SORT_MAP: Record<
 	string,
@@ -50,7 +51,13 @@ const CAT_CLASS: Record<string, string> = {
 	Environment: "emergency",
 };
 
-const LIMIT = 9;
+const LIMIT = 6;
+
+const heroPct = (raised: number, goal: number) =>
+  Math.min(Math.round((raised / goal) * 100), 100);
+
+const heroFmt = (n: number) =>
+  n >= 100000 ? `NPR ${(n / 100000).toFixed(1)}L` : `NPR ${n.toLocaleString()}`;
 
 const transformCampaign = (c: ApiCampaign): CardCampaign => {
 	const endDate = c.endDate ? new Date(c.endDate) : null;
@@ -81,7 +88,6 @@ export default function CampaignsPage() {
 	const [searchInput, setSearchInput] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [page, setPage] = useState(1);
-	const [accumulated, setAccumulated] = useState<ApiCampaign[]>([]);
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	useEffect(() => {
@@ -113,31 +119,29 @@ export default function CampaignsPage() {
 
 	const { data, isLoading, isFetching } = useGetAllCampaigns(queryParams);
 	const { data: categoriesData } = useGetCategories();
+	const { data: statsData } = usePublicStats();
+	const { data: heroData } = useGetAllCampaigns({ page: 1, limit: 3, status: "active", sortBy: "raisedAmount", order: "desc" });
+	const ps = statsData?.data;
 
-	useEffect(() => {
-		if (!data?.campaigns) return;
-
-		const campaigns = data.campaigns;
-
-		if (page === 1) {
-			setAccumulated(campaigns);
-		} else {
-			setAccumulated((prev) => {
-				const seen = new Set(prev.map((c) => c._id));
-				return [...prev, ...campaigns.filter((c) => !seen.has(c._id))];
-			});
-		}
-	}, [data?.campaigns, page]);
 	const totalPages = data?.pagination?.totalPages ?? 1;
-	const hasMore = page < totalPages;
+	const totalCount = data?.pagination?.total ?? 0;
 
 	const handleCategorySelect = useCallback((id: string, name: string) => {
 		setActiveCategoryId(id);
 		setActiveCategoryName(name);
 	}, []);
 
-	const displayCampaigns = accumulated.map(transformCampaign);
+	const displayCampaigns = (data?.campaigns ?? []).map(transformCampaign);
+	const heroCampaigns = (heroData?.campaigns ?? []).map(transformCampaign);
 	const isFirstLoad = isLoading && page === 1;
+
+	// Pagination helpers
+	const getPageNumbers = () => {
+		if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+		if (page <= 4) return [1, 2, 3, 4, 5, "...", totalPages];
+		if (page >= totalPages - 3) return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+		return [1, "...", page - 1, page, page + 1, "...", totalPages];
+	};
 
 	return (
 		<div
@@ -190,81 +194,101 @@ export default function CampaignsPage() {
 
 						<div className="hidden lg:block flex-shrink-0 w-[440px]">
 							<div className="relative h-[320px]">
-								<div className="absolute left-0 top-0 w-[260px] h-[280px] rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(21,104,57,0.18)] border-4 border-white">
-									<img
-										src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600&q=85&auto=format&fit=crop"
-										alt="Flood relief Nepal"
-										className="w-full h-full object-cover"
-									/>
-									<div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full">
-										<span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-										Urgent
-									</div>
-									<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-3">
-										<p className="text-white text-[11px] font-bold truncate mb-1.5">
-											Koshi Flood Relief 2024
-										</p>
-										<div className="h-1 bg-white/30 rounded-full overflow-hidden">
-											<div className="h-full w-[72%] bg-setu-400 rounded-full" />
+
+								{/* ── Large card (campaign 1) ── */}
+								{heroCampaigns[0] ? (
+									<Link
+										href={`/campaigns/${heroCampaigns[0].id}`}
+										className="absolute left-0 top-0 w-[260px] h-[280px] rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(21,104,57,0.18)] border-4 border-white block no-underline"
+									>
+										{heroCampaigns[0].img ? (
+											<img src={heroCampaigns[0].img} alt={heroCampaigns[0].title} className="w-full h-full object-cover" />
+										) : (
+											<div className="w-full h-full bg-gradient-to-br from-setu-800 to-setu-950" />
+										)}
+										{heroCampaigns[0].urgent && (
+											<div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full">
+												<span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+												Urgent
+											</div>
+										)}
+										<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-3">
+											<p className="text-white text-[11px] font-bold truncate mb-1.5">
+												{heroCampaigns[0].title}
+											</p>
+											<div className="h-1 bg-white/30 rounded-full overflow-hidden">
+												<div className="h-full bg-setu-400 rounded-full" style={{ width: `${heroPct(heroCampaigns[0].raised, heroCampaigns[0].goal)}%` }} />
+											</div>
+											<div className="flex justify-between mt-1">
+												<span className="text-white/80 text-[10px]">{heroFmt(heroCampaigns[0].raised)} raised</span>
+												<span className="text-setu-300 text-[10px] font-bold">{heroPct(heroCampaigns[0].raised, heroCampaigns[0].goal)}%</span>
+											</div>
 										</div>
-										<div className="flex justify-between mt-1">
-											<span className="text-white/80 text-[10px]">
-												NPR 3.6L raised
-											</span>
-											<span className="text-setu-300 text-[10px] font-bold">
-												72%
-											</span>
+									</Link>
+								) : (
+									<div className="absolute left-0 top-0 w-[260px] h-[280px] rounded-2xl bg-setu-100 border-4 border-white animate-pulse" />
+								)}
+
+								{/* ── Top-right small card (campaign 2) ── */}
+								{heroCampaigns[1] ? (
+									<Link
+										href={`/campaigns/${heroCampaigns[1].id}`}
+										className="absolute right-0 top-0 w-[165px] h-[150px] rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(21,104,57,0.15)] border-4 border-white block no-underline"
+									>
+										{heroCampaigns[1].img ? (
+											<img src={heroCampaigns[1].img} alt={heroCampaigns[1].title} className="w-full h-full object-cover" />
+										) : (
+											<div className="w-full h-full bg-gradient-to-br from-setu-700 to-setu-900" />
+										)}
+										<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2.5 py-2">
+											<p className="text-white text-[10px] font-bold truncate">
+												{heroCampaigns[1].title}
+											</p>
 										</div>
-									</div>
-								</div>
+									</Link>
+								) : (
+									<div className="absolute right-0 top-0 w-[165px] h-[150px] rounded-2xl bg-setu-100 border-4 border-white animate-pulse" />
+								)}
 
-								<div className="absolute right-0 top-0 w-[165px] h-[150px] rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(21,104,57,0.15)] border-4 border-white">
-									<img
-										src="https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=400&q=80&auto=format&fit=crop"
-										alt="Education Nepal"
-										className="w-full h-full object-cover"
-									/>
-									<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2.5 py-2">
-										<p className="text-white text-[10px] font-bold truncate">
-											School for Dolakha
-										</p>
-									</div>
-								</div>
+								{/* ── Bottom-right small card (campaign 3) ── */}
+								{heroCampaigns[2] ? (
+									<Link
+										href={`/campaigns/${heroCampaigns[2].id}`}
+										className="absolute right-0 bottom-0 w-[165px] h-[150px] rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(21,104,57,0.15)] border-4 border-white block no-underline"
+									>
+										{heroCampaigns[2].img ? (
+											<img src={heroCampaigns[2].img} alt={heroCampaigns[2].title} className="w-full h-full object-cover" />
+										) : (
+											<div className="w-full h-full bg-gradient-to-br from-setu-700 to-setu-900" />
+										)}
+										<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2.5 py-2">
+											<p className="text-white text-[10px] font-bold truncate">
+												{heroCampaigns[2].title}
+											</p>
+										</div>
+									</Link>
+								) : (
+									<div className="absolute right-0 bottom-0 w-[165px] h-[150px] rounded-2xl bg-setu-100 border-4 border-white animate-pulse" />
+								)}
 
-								<div className="absolute right-0 bottom-0 w-[165px] h-[150px] rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(21,104,57,0.15)] border-4 border-white">
-									<img
-										src="https://images.unsplash.com/photo-1584515933487-779824d29309?w=400&q=80&auto=format&fit=crop"
-										alt="Medical Nepal"
-										className="w-full h-full object-cover"
-									/>
-									<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2.5 py-2">
-										<p className="text-white text-[10px] font-bold truncate">
-											Help Sunita Beat Cancer
-										</p>
-									</div>
-								</div>
-
+								{/* ── Donor count badge ── */}
 								<div className="absolute bottom-[148px] right-[148px] translate-x-1/2 translate-y-1/2 z-10 bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] border border-setu-100 px-3 py-2 flex items-center gap-2">
 									<div className="flex -space-x-1.5">
 										{[11, 12, 13].map((i) => (
-											<img
-												key={i}
-												src={`https://i.pravatar.cc/24?img=${i}`}
-												className="w-6 h-6 rounded-full border-2 border-white object-cover"
-												alt=""
-											/>
+											<img key={i} src={`https://i.pravatar.cc/24?img=${i}`} className="w-6 h-6 rounded-full border-2 border-white object-cover" alt="" />
 										))}
 									</div>
 									<div>
 										<p className="text-[11px] font-bold text-setu-950 leading-none">
-											18,400+
+											{heroCampaigns.length > 0
+												? `${heroCampaigns.reduce((s, c) => s + c.donors, 0).toLocaleString()}+`
+												: "…"}
 										</p>
-										<p className="text-[9px] text-gray-400 leading-none mt-0.5">
-											donors
-										</p>
+										<p className="text-[9px] text-gray-400 leading-none mt-0.5">donors</p>
 									</div>
 								</div>
 
+								{/* ── Verified badge ── */}
 								<div className="absolute top-[72px] left-[248px] z-10 bg-setu-700 text-white rounded-xl shadow-[0_4px_16px_rgba(21,104,57,0.3)] px-3 py-2 flex items-center gap-1.5">
 									<ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
 									<p className="text-[11px] font-bold leading-none">Verified</p>
@@ -275,9 +299,9 @@ export default function CampaignsPage() {
 
 					<div className="flex flex-wrap gap-6 mt-10 pt-8 border-t border-setu-100">
 						{[
-							{ icon: TrendingUp, n: "1,200+", l: "Active Campaigns" },
-							{ icon: Users, n: "18,400+", l: "Total Donors" },
-							{ icon: Heart, n: "NPR 2.4Cr+", l: "Total Raised" },
+							{ icon: TrendingUp, n: ps ? formatCount(ps.activeCampaigns) : "...", l: "Active Campaigns" },
+							{ icon: Users, n: ps ? formatCount(ps.totalDonors) : "...", l: "Total Donors" },
+							{ icon: Heart, n: ps ? formatNPR(ps.totalRaised) : "...", l: "Total Raised" },
 							{ icon: MapPin, n: "77 Districts", l: "Across Nepal" },
 						].map(({ icon: Icon, n, l }) => (
 							<div
@@ -418,39 +442,61 @@ export default function CampaignsPage() {
 						</div>
 					) : (
 						<>
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+							<div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${isFetching ? "opacity-60" : "opacity-100"}`}>
 								{displayCampaigns.map((c) => (
-									<CampaignCard
-										key={c.id}
-										c={c}
-									/>
+									<CampaignCard key={c.id} c={c} />
 								))}
 							</div>
 
-							<div className="flex justify-center mt-12">
-								{hasMore ? (
+							{/* Pagination */}
+							{totalPages > 1 && (
+								<div className="flex items-center justify-center gap-2 mt-12 flex-wrap">
+									{/* Prev */}
 									<button
-										onClick={() => {
-											if (!isFetching) setPage((p) => p + 1);
-										}}
-										disabled={isFetching}
-										className="inline-flex items-center gap-2 px-8 py-3.5 bg-white hover:bg-setu-50 border border-setu-200 hover:border-setu-400 text-setu-700 text-[14px] font-semibold rounded-full transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed">
-										{isFetching ? (
-											<>
-												<Loader2 className="w-4 h-4 animate-spin" /> Loading…
-											</>
-										) : (
-											<>
-												Load More Campaigns <ChevronRight className="w-4 h-4" />
-											</>
-										)}
+										onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+										disabled={page === 1 || isFetching}
+										className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-setu-200 text-setu-700 text-[13px] font-semibold rounded-full hover:bg-setu-50 hover:border-setu-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+									>
+										← Prev
 									</button>
-								) : (
-									<p className="text-[13px] text-setu-600/50 font-medium">
-										All campaigns loaded
-									</p>
-								)}
-							</div>
+
+									{/* Page numbers */}
+									{getPageNumbers().map((p, i) =>
+										p === "..." ? (
+											<span key={`ellipsis-${i}`} className="px-1 text-gray-400 text-[13px] select-none">…</span>
+										) : (
+											<button
+												key={p}
+												onClick={() => { setPage(p as number); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+												disabled={isFetching}
+												className={`w-10 h-10 rounded-full text-[13px] font-bold transition-all cursor-pointer border ${
+													page === p
+														? "bg-setu-700 text-white border-setu-700 shadow-[0_2px_10px_rgba(21,104,57,0.3)]"
+														: "bg-white text-setu-700 border-setu-200 hover:border-setu-400 hover:bg-setu-50"
+												}`}
+											>
+												{p}
+											</button>
+										)
+									)}
+
+									{/* Next */}
+									<button
+										onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+										disabled={page === totalPages || isFetching}
+										className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-setu-200 text-setu-700 text-[13px] font-semibold rounded-full hover:bg-setu-50 hover:border-setu-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+									>
+										Next →
+									</button>
+								</div>
+							)}
+
+							{/* Page info */}
+							{totalCount > 0 && (
+								<p className="text-center text-[12px] text-setu-600/50 mt-3">
+									Page {page} of {totalPages} · {totalCount} campaigns total
+								</p>
+							)}
 						</>
 					)}
 				</div>
@@ -479,7 +525,7 @@ export default function CampaignsPage() {
 					</div>
 					<div className="flex gap-3 flex-wrap">
 						<Link
-							href="/register"
+							href="/campaigns/create"
 							className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-setu-800 text-[14px] font-bold rounded-full no-underline hover:bg-setu-50 transition-colors shadow-[0_4px_16px_rgba(0,0,0,0.15)]">
 							Start a Campaign <ArrowRight className="w-4 h-4" />
 						</Link>

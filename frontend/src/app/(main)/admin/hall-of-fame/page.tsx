@@ -1,53 +1,52 @@
 "use client";
 
 import { useState } from "react";
-import { Star, DollarSign, CheckCircle, Activity } from "lucide-react";
-import { mockHallOfFame } from "@/lib/mockData";
+import {
+	Star,
+	DollarSign,
+	CheckCircle,
+	Activity,
+	Trophy,
+	Medal,
+	Award,
+} from "lucide-react";
 import { DashboardCard } from "@/src/components/dashboard/DashboardCard";
 import { Badge } from "@/src/components/dashboard/Badge";
 import { ActionButton } from "@/src/components/dashboard/ActionButton";
 import { Modal } from "@/src/components/dashboard/Modal";
-
-interface HallOfFameRow {
-	id: string;
-	name: string;
-	title: string;
-	contributionAmount: number;
-	contributionCount: number;
-	impact: string;
-	category: string;
-	isVerified: boolean;
-	joinedDate: string;
-}
+import { useGetLeaderboard, HallOfFameDonor } from "@/src/hooks/useHallOfFame";
+import { useGetDonorStatsAdmin } from "@/src/hooks/useUser";
 
 export default function HallOfFamePage() {
-	const [selectedEntry, setSelectedEntry] = useState<HallOfFameRow | null>(
+	const [selectedEntry, setSelectedEntry] = useState<HallOfFameDonor | null>(
 		null,
 	);
 	const [showModal, setShowModal] = useState(false);
 	const [filterCategory, setFilterCategory] = useState("all");
 	const [sortBy, setSortBy] = useState<"amount" | "impact" | "date">("amount");
 
-	const hallOfFameRows: HallOfFameRow[] = mockHallOfFame.map((entry) => ({
-		id: entry.id,
-		name: entry.name,
-		title: entry.title,
-		contributionAmount: entry.contributionAmount,
-		contributionCount: entry.contributionCount,
-		impact: entry.impact,
-		category: entry.category,
-		isVerified: entry.isVerified,
-		joinedDate: new Date(entry.joinedDate).toLocaleDateString(),
-	}));
+	const { data, isLoading } = useGetLeaderboard({ donorLimit: 50 });
+	const backendDonors = data?.donors || [];
 
-	const filteredEntries = hallOfFameRows
+	const { data: statsRaw } = useGetDonorStatsAdmin();
+	const stats = statsRaw?.data || {
+		totalDonors: 0,
+		totalDonated: 0,
+		totalDonations: 0,
+	};
+
+	const getTitle = (badge: string | null) =>
+		badge
+			? `${badge.charAt(0).toUpperCase() + badge.slice(1)} Contributor`
+			: "Supporter";
+
+	const filteredEntries = backendDonors
 		.filter(
 			(entry) => filterCategory === "all" || entry.category === filterCategory,
 		)
 		.sort((a, b) => {
-			if (sortBy === "amount")
-				return b.contributionAmount - a.contributionAmount;
-			if (sortBy === "impact") return b.contributionCount - a.contributionCount;
+			if (sortBy === "amount") return b.totalDonated - a.totalDonated;
+			if (sortBy === "impact") return b.donationsCount - a.donationsCount;
 			if (sortBy === "date")
 				return (
 					new Date(b.joinedDate).getTime() - new Date(a.joinedDate).getTime()
@@ -55,17 +54,15 @@ export default function HallOfFamePage() {
 			return 0;
 		});
 
-	const categories = [...new Set(hallOfFameRows.map((e) => e.category))];
-	const topContributor = hallOfFameRows[0];
-	const totalContributions = hallOfFameRows.reduce(
-		(sum, e) => sum + e.contributionAmount,
+	const categories = [...new Set(backendDonors.map((e) => e.category))];
+	const topContributor = backendDonors[0];
+	const totalContributions = backendDonors.reduce(
+		(sum, e) => sum + e.totalDonated,
 		0,
 	);
-	const activeCount = hallOfFameRows.filter(
-		(e) => e.contributionCount > 0,
-	).length;
+	const activeCount = backendDonors.filter((e) => e.donationsCount > 0).length;
 
-	const handleView = (entry: HallOfFameRow) => {
+	const handleView = (entry: HallOfFameDonor) => {
 		setSelectedEntry(entry);
 		setShowModal(true);
 	};
@@ -85,42 +82,25 @@ export default function HallOfFamePage() {
 			{/* Stats Cards */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 				<DashboardCard
-					title="Top Contributors"
-					value={hallOfFameRows.length}
-					subtitle="donors featured"
+					title="Platform Donors"
+					value={stats.totalDonors}
+					subtitle="registered donors"
 					icon={Star}
 					color="gold"
-					trend={{ value: 3, direction: "up" }}
 				/>
 				<DashboardCard
 					title="Total Contributions"
-					value="₨25.5M"
+					value={`₨${(stats.totalDonated / 1000).toFixed(1)}k`}
 					subtitle="cumulative donations"
 					icon={DollarSign}
-					color="gold"
-					trend={{ value: 15, direction: "up" }}
+					color="green"
 				/>
 				<DashboardCard
-					title="Active Contributors"
-					value={activeCount}
-					subtitle="still donating"
-					icon={Activity}
-					color="gold"
-					trend={{ value: 8, direction: "up" }}
-				/>
-				<DashboardCard
-					title="Total Contributions"
-					value={`$${(totalContributions / 1000000).toFixed(1)}M`}
-					subtitle="aggregate support"
-					variant="green"
-					icon={DollarSign}
-				/>
-				<DashboardCard
-					title="Verified Entries"
-					value={hallOfFameRows.filter((e) => e.isVerified).length}
-					subtitle="verified donors"
-					variant="green"
+					title="Total Donations"
+					value={stats.totalDonations}
+					subtitle="completed transactions"
 					icon={CheckCircle}
+					color="gold"
 				/>
 			</div>
 
@@ -135,23 +115,27 @@ export default function HallOfFamePage() {
 							<h2 className="text-3xl font-bold font-display mb-2">
 								{topContributor.name}
 							</h2>
-							<p className="text-setu-100 mb-4">{topContributor.title}</p>
+							<p className="text-setu-100 mb-4">
+								{getTitle(topContributor.badge)}
+							</p>
 							<div className="flex items-center gap-4">
 								<div>
 									<p className="text-sm text-setu-100">Total Contributions</p>
 									<p className="text-2xl font-bold">
-										${(topContributor.contributionAmount / 1000000).toFixed(1)}M
+										Rs {topContributor.totalDonated}
 									</p>
 								</div>
 								<div>
-									<p className="text-sm text-setu-100">Impact Score</p>
+									<p className="text-sm text-setu-100">Donations Made</p>
 									<p className="text-2xl font-bold">
-										{topContributor.contributionCount}+
+										{topContributor.donationsCount}
 									</p>
 								</div>
 							</div>
 						</div>
-						<div className="text-8xl opacity-20">⭐</div>
+						<div className="text-white opacity-20">
+							<Trophy size={100} />
+						</div>
 					</div>
 				</div>
 			)}
@@ -201,23 +185,43 @@ export default function HallOfFamePage() {
 							<div className="flex items-start justify-between mb-4">
 								<div>
 									<div className="flex items-center gap-2 mb-2">
-										{index === 0 && <span className="text-2xl">🥇</span>}
-										{index === 1 && <span className="text-2xl">🥈</span>}
-										{index === 2 && <span className="text-2xl">🥉</span>}
-										{index > 2 && <span className="text-lg">⭐</span>}
+										{index === 0 && (
+											<Trophy
+												className="text-yellow-500"
+												size={24}
+											/>
+										)}
+										{index === 1 && (
+											<Medal
+												className="text-gray-400"
+												size={24}
+											/>
+										)}
+										{index === 2 && (
+											<Medal
+												className="text-amber-600"
+												size={24}
+											/>
+										)}
+										{index > 2 && (
+											<Award
+												className="text-setu-400"
+												size={20}
+											/>
+										)}
 									</div>
 									<h3 className="text-lg font-bold text-setu-950">
 										{entry.name}
 									</h3>
-									<p className="text-sm text-setu-600">{entry.title}</p>
+									<p className="text-sm text-setu-600">
+										{getTitle(entry.badge)}
+									</p>
 								</div>
-								{entry.isVerified && (
-									<Badge
-										variant="success"
-										className="text-xs">
-										✓ Verified
-									</Badge>
-								)}
+								<Badge
+									variant="success"
+									className="text-xs">
+									✓ Verified
+								</Badge>
 							</div>
 
 							<div className="space-y-3 mb-4">
@@ -226,13 +230,13 @@ export default function HallOfFamePage() {
 										Total Contribution
 									</p>
 									<p className="text-xl font-bold text-setu-700">
-										${(entry.contributionAmount / 1000000).toFixed(1)}M
+										₨{(entry.totalDonated / 1000).toFixed(1)}k
 									</p>
 								</div>
 								<div className="bg-setu-50 p-3 rounded-lg">
 									<p className="text-xs text-setu-600 mb-1">Impact Score</p>
 									<p className="text-xl font-bold text-setu-700">
-										{entry.contributionCount} lives helped
+										{entry.campaignsSupported} campaigns
 									</p>
 								</div>
 							</div>
@@ -240,7 +244,7 @@ export default function HallOfFamePage() {
 							<div className="mb-4">
 								<p className="text-xs text-setu-600 mb-2">Category</p>
 								<Badge
-									variant="secondary"
+									variant="info"
 									className="text-xs">
 									{entry.category}
 								</Badge>
@@ -278,25 +282,29 @@ export default function HallOfFamePage() {
 				title={selectedEntry?.name || "Profile"}>
 				{selectedEntry && (
 					<div className="space-y-6">
-						<div className="text-center">
-							<p className="text-5xl mb-4">⭐</p>
+						<div className="text-center flex flex-col items-center">
+							<div className="mb-4 text-yellow-500">
+								<Award size={48} />
+							</div>
 							<h2 className="text-2xl font-bold font-display text-setu-950 mb-1">
 								{selectedEntry.name}
 							</h2>
-							<p className="text-setu-600">{selectedEntry.title}</p>
+							<p className="text-setu-600">{getTitle(selectedEntry.badge)}</p>
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
 							<div className="bg-setu-50 p-4 rounded-lg text-center">
 								<p className="text-xs text-setu-600 mb-2">Total Contribution</p>
 								<p className="text-2xl font-bold text-setu-700">
-									${(selectedEntry.contributionAmount / 1000000).toFixed(1)}M
+									₨{(selectedEntry.totalDonated / 1000).toFixed(1)}k
 								</p>
 							</div>
 							<div className="bg-setu-50 p-4 rounded-lg text-center">
-								<p className="text-xs text-setu-600 mb-2">Impact Score</p>
+								<p className="text-xs text-setu-600 mb-2">
+									Campaigns Supported
+								</p>
 								<p className="text-2xl font-bold text-setu-700">
-									{selectedEntry.contributionCount}
+									{selectedEntry.campaignsSupported}
 								</p>
 							</div>
 						</div>
@@ -305,7 +313,7 @@ export default function HallOfFamePage() {
 							<p className="text-sm font-semibold text-setu-900 mb-2">
 								Category
 							</p>
-							<Badge variant="secondary">{selectedEntry.category}</Badge>
+							<Badge variant="info">{selectedEntry.category}</Badge>
 						</div>
 
 						<div>
@@ -319,11 +327,12 @@ export default function HallOfFamePage() {
 
 						<div className="flex items-center justify-between pt-4 border-t border-setu-200">
 							<p className="text-sm text-setu-600">
-								Joined {selectedEntry.joinedDate}
+								Joined{" "}
+								{selectedEntry.joinedDate
+									? new Date(selectedEntry.joinedDate).toLocaleDateString()
+									: "N/A"}
 							</p>
-							{selectedEntry.isVerified && (
-								<Badge variant="success">Verified Donor</Badge>
-							)}
+							<Badge variant="success">Verified Donor</Badge>
 						</div>
 					</div>
 				)}

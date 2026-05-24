@@ -36,7 +36,7 @@ export const useGetLeaderboard = (params?: { donorLimit?: number; teamLimit?: nu
   return useQuery<LeaderboardResponse, Error>({
     queryKey: ["hall-of-fame-leaderboard", params],
     queryFn: async () => {
-      const { data } = await axiosInstance.get("/hall-of-fame/donors", { params });
+      const { data } = await axiosInstance.get("/hall-of-fame", { params });
       return data;
     },
   });

@@ -4,8 +4,6 @@ import { useRouter } from "next/navigation";
 import { axiosInstance } from "../services/axiosInstance";
 import axios from "axios";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export interface CampaignImage {
 	url: string;
 	publicId: string;
@@ -22,6 +20,29 @@ export interface CampaignLocation {
 	zipCode?: string;
 }
 
+export interface CampaignDocument {
+	_id: string;
+	url: string;
+	publicId: string;
+	name: string;
+	type:
+		| "wada_registration"
+		| "ngo_certificate"
+		| "tax_clearance"
+		| "bank_details"
+		| "identity"
+		| "other";
+	uploadedAt: string;
+}
+
+export interface CampaignReactions {
+	love: number;
+	support: number;
+	sad: number;
+	grateful: number;
+	urgent: number;
+}
+
 export interface Campaign {
 	_id: string;
 	title: string;
@@ -31,6 +52,8 @@ export interface Campaign {
 	goalAmount: number;
 	raisedAmount: number;
 	images: CampaignImage;
+	documents: CampaignDocument[];
+	reactions: CampaignReactions;
 	urgent: boolean;
 	location: CampaignLocation;
 	startDate: string;
@@ -41,6 +64,8 @@ export interface Campaign {
 	approvedBy?: { _id: string; name: string; email: string };
 	approvedAt?: string;
 	donorsCount: number;
+	phoneNumber?: string;
+	esewaId?: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -64,8 +89,6 @@ export interface CampaignResponse {
 	data: Campaign;
 }
 
-// ─── Query Params ─────────────────────────────────────────────────────────────
-
 export interface GetCampaignsParams {
 	page?: number;
 	limit?: number;
@@ -77,8 +100,6 @@ export interface GetCampaignsParams {
 	order?: "asc" | "desc";
 }
 
-// ─── Mutation Payloads ────────────────────────────────────────────────────────
-
 export interface CreateCampaignPayload {
 	title: string;
 	description: string;
@@ -86,6 +107,8 @@ export interface CreateCampaignPayload {
 	goalAmount: number;
 	urgent?: boolean;
 	endDate?: string;
+	phoneNumber?: string;
+	esewaId?: string;
 	locationName?: string;
 	longitude?: number;
 	latitude?: number;
@@ -96,6 +119,9 @@ export interface CreateCampaignPayload {
 	zipCode?: string;
 	locationId?: string;
 	image: File;
+	documents?: File[];
+	documentNames?: string[];
+	documentTypes?: string[];
 }
 
 export interface UpdateCampaignPayload extends Partial<
@@ -111,13 +137,20 @@ export interface StatusReasonPayload {
 }
 
 // ─── Helper: build FormData ───────────────────────────────────────────────────
-
 const toFormData = (payload: Record<string, unknown>): FormData => {
 	const form = new FormData();
 	Object.entries(payload).forEach(([key, value]) => {
 		if (value === undefined || value === null) return;
 		if (value instanceof File) {
 			form.append(key, value);
+		} else if (Array.isArray(value)) {
+			value.forEach((item) => {
+				if (item instanceof File) {
+					form.append(key, item);
+				} else {
+					form.append(key, String(item));
+				}
+			});
 		} else {
 			form.append(key, String(value));
 		}
@@ -126,19 +159,17 @@ const toFormData = (payload: Record<string, unknown>): FormData => {
 };
 
 // ─── Error resolver ───────────────────────────────────────────────────────────
-
-const getErrorMessage = (error: unknown, fallback: string): string => {
+export const getErrorMessage = (error: unknown, fallback: string): string => {
 	if (axios.isAxiosError(error)) {
 		return error.response?.data?.message || fallback;
 	}
 	return fallback;
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// QUERY HOOKS
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// CAMPAIGN QUERIES
+// ═══════════════════════════════════════════════
 
-// ─── Get All Campaigns ────────────────────────────────────────────────────────
 export const useGetAllCampaigns = (params?: GetCampaignsParams) => {
 	return useQuery<CampaignListResponse, Error>({
 		queryKey: ["campaigns", params],
@@ -146,12 +177,14 @@ export const useGetAllCampaigns = (params?: GetCampaignsParams) => {
 			const res = await axiosInstance.get<CampaignListResponse>("/campaigns", {
 				params,
 			});
+
+			console.log(res.data);
+
 			return res.data;
 		},
 	});
 };
 
-// ─── Get Campaign By ID ───────────────────────────────────────────────────────
 export const useGetCampaignById = (id: string) => {
 	return useQuery<CampaignResponse, Error>({
 		queryKey: ["campaign", id],
@@ -163,7 +196,6 @@ export const useGetCampaignById = (id: string) => {
 	});
 };
 
-// ─── Get My Campaigns ─────────────────────────────────────────────────────────
 export const useGetMyCampaigns = (
 	params?: Pick<GetCampaignsParams, "page" | "limit" | "status">,
 ) => {
@@ -179,40 +211,57 @@ export const useGetMyCampaigns = (
 	});
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MUTATION HOOKS
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// CAMPAIGN MUTATIONS
+// ═══════════════════════════════════════════════
 
-// ─── Create Campaign ──────────────────────────────────────────────────────────
 export const useCreateCampaign = () => {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 
 	return useMutation<CampaignResponse, Error, CreateCampaignPayload>({
 		mutationFn: async (payload) => {
-			const { image, ...rest } = payload;
-			const form = toFormData({ ...rest, image });
+			const { image, documents, documentNames, documentTypes, ...rest } =
+				payload;
+			const form = new FormData();
+
+			// Append all scalar fields
+			Object.entries(rest).forEach(([k, v]) => {
+				if (v !== undefined && v !== null) form.append(k, String(v));
+			});
+
+			// Cover image — field name must be "image" (matches upload.fields)
+			form.append("image", image);
+
+			// Verification documents — field name "documents"
+			if (documents?.length) {
+				documents.forEach((doc) => form.append("documents", doc));
+				if (documentNames?.length)
+					form.append("documentNames", JSON.stringify(documentNames));
+				if (documentTypes?.length)
+					form.append("documentTypes", JSON.stringify(documentTypes));
+			}
+
 			const res = await axiosInstance.post<CampaignResponse>(
 				"/campaigns",
 				form,
-				{ headers: { "Content-Type": "multipart/form-data" } },
+				{
+					headers: { "Content-Type": "multipart/form-data" },
+				},
 			);
 			return res.data;
 		},
-
 		onSuccess: (data) => {
 			toast.success(data.message || "Campaign created successfully.");
 			queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-			router.push("/my-campaigns");
+			setTimeout(() => router.push("/my-campaigns"), 5000);
 		},
-
 		onError: (error) => {
 			toast.error(getErrorMessage(error, "Failed to create campaign."));
 		},
 	});
 };
 
-// ─── Update Campaign ──────────────────────────────────────────────────────────
 export const useUpdateCampaign = () => {
 	const queryClient = useQueryClient();
 
@@ -222,24 +271,23 @@ export const useUpdateCampaign = () => {
 			const res = await axiosInstance.put<CampaignResponse>(
 				`/campaigns/${id}`,
 				form,
-				{ headers: { "Content-Type": "multipart/form-data" } },
+				{
+					headers: { "Content-Type": "multipart/form-data" },
+				},
 			);
 			return res.data;
 		},
-
 		onSuccess: (data) => {
 			toast.success(data.message || "Campaign updated successfully.");
 			queryClient.invalidateQueries({ queryKey: ["campaigns"] });
 			queryClient.invalidateQueries({ queryKey: ["campaign", data.data._id] });
 		},
-
 		onError: (error) => {
 			toast.error(getErrorMessage(error, "Failed to update campaign."));
 		},
 	});
 };
 
-// ─── Delete Campaign ──────────────────────────────────────────────────────────
 export const useDeleteCampaign = () => {
 	const queryClient = useQueryClient();
 
@@ -248,19 +296,16 @@ export const useDeleteCampaign = () => {
 			const res = await axiosInstance.delete(`/campaigns/${id}`);
 			return res.data;
 		},
-
 		onSuccess: (data) => {
 			toast.success(data.message || "Campaign deleted.");
 			queryClient.invalidateQueries({ queryKey: ["campaigns"] });
 		},
-
 		onError: (error) => {
 			toast.error(getErrorMessage(error, "Failed to delete campaign."));
 		},
 	});
 };
 
-// ─── Approve Campaign ─────────────────────────────────────────────────────────
 export const useApproveCampaign = () => {
 	const queryClient = useQueryClient();
 
@@ -271,20 +316,17 @@ export const useApproveCampaign = () => {
 			);
 			return res.data;
 		},
-
 		onSuccess: (data) => {
 			toast.success(data.message || "Campaign approved.");
 			queryClient.invalidateQueries({ queryKey: ["campaigns"] });
 			queryClient.invalidateQueries({ queryKey: ["campaign", data.data._id] });
 		},
-
 		onError: (error) => {
 			toast.error(getErrorMessage(error, "Failed to approve campaign."));
 		},
 	});
 };
 
-// ─── Reject Campaign ──────────────────────────────────────────────────────────
 export const useRejectCampaign = () => {
 	const queryClient = useQueryClient();
 
@@ -296,20 +338,17 @@ export const useRejectCampaign = () => {
 			);
 			return res.data;
 		},
-
 		onSuccess: (data) => {
 			toast.success(data.message || "Campaign rejected.");
 			queryClient.invalidateQueries({ queryKey: ["campaigns"] });
 			queryClient.invalidateQueries({ queryKey: ["campaign", data.data._id] });
 		},
-
 		onError: (error) => {
 			toast.error(getErrorMessage(error, "Failed to reject campaign."));
 		},
 	});
 };
 
-// ─── Suspend Campaign ─────────────────────────────────────────────────────────
 export const useSuspendCampaign = () => {
 	const queryClient = useQueryClient();
 
@@ -321,20 +360,17 @@ export const useSuspendCampaign = () => {
 			);
 			return res.data;
 		},
-
 		onSuccess: (data) => {
 			toast.success(data.message || "Campaign suspended.");
 			queryClient.invalidateQueries({ queryKey: ["campaigns"] });
 			queryClient.invalidateQueries({ queryKey: ["campaign", data.data._id] });
 		},
-
 		onError: (error) => {
 			toast.error(getErrorMessage(error, "Failed to suspend campaign."));
 		},
 	});
 };
 
-// ─── Unsuspend Campaign ───────────────────────────────────────────────────────
 export const useUnsuspendCampaign = () => {
 	const queryClient = useQueryClient();
 
@@ -345,15 +381,50 @@ export const useUnsuspendCampaign = () => {
 			);
 			return res.data;
 		},
-
 		onSuccess: (data) => {
 			toast.success(data.message || "Campaign reactivated.");
 			queryClient.invalidateQueries({ queryKey: ["campaigns"] });
 			queryClient.invalidateQueries({ queryKey: ["campaign", data.data._id] });
 		},
-
 		onError: (error) => {
 			toast.error(getErrorMessage(error, "Failed to reactivate campaign."));
 		},
+	});
+};
+
+// ═══════════════════════════════════════════════
+// RECENT DONORS (Public)
+// ═══════════════════════════════════════════════
+
+export interface RecentDonor {
+	_id: string;
+	name: string;
+	avatar: { url: string; publicId: string } | null;
+	amount: number;
+	paidAt: string;
+	isTop: boolean;
+	anonymous: boolean;
+}
+
+export interface RecentDonorsResponse {
+	success: boolean;
+	donors: RecentDonor[];
+}
+
+export const useGetRecentCampaignDonors = (
+	campaignId: string,
+	limit = 10,
+) => {
+	return useQuery<RecentDonorsResponse, Error>({
+		queryKey: ["campaign-donors", campaignId, limit],
+		queryFn: async () => {
+			const res = await axiosInstance.get<RecentDonorsResponse>(
+				`/payments/campaign/${campaignId}/donors`,
+				{ params: { limit } },
+			);
+			return res.data;
+		},
+		enabled: !!campaignId,
+		refetchInterval: 30_000, // auto-refresh every 30s
 	});
 };

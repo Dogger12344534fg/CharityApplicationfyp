@@ -25,12 +25,13 @@ import {
   CheckCircle2,
   XCircle,
   Navigation,
+  FileCheck,
+  Trash2,
 } from "lucide-react";
-import { Toaster, toast } from "sonner"; // ← FIX 1: added toast
+import { Toaster, toast } from "sonner";
 import { useCreateCampaign } from "@/src/hooks/useCampaign";
 import { useGetCategories } from "@/src/hooks/useCategory";
 
-// ── Steps ─────────────────────────────────────────────────────
 const STEPS = [
   { n: 1, label: "Basic Info" },
   { n: 2, label: "Story & Media" },
@@ -38,7 +39,6 @@ const STEPS = [
   { n: 4, label: "Review" },
 ];
 
-// ── Category icon/color metadata keyed by backend name ────────
 const CATEGORY_META: Record<
   string,
   { icon: React.ElementType; color: string; bg: string; border: string }
@@ -81,6 +81,15 @@ const CATEGORY_META: Record<
   },
 };
 
+const DOC_TYPES = [
+  { value: "wada_registration", label: "Wada Registration" },
+  { value: "ngo_certificate", label: "NGO Certificate" },
+  { value: "tax_clearance", label: "Tax Clearance" },
+  { value: "bank_details", label: "Bank Details" },
+  { value: "identity", label: "Identity Document" },
+  { value: "other", label: "Other" },
+];
+
 const durations = [
   { key: "15", label: "15 days" },
   { key: "30", label: "30 days" },
@@ -114,7 +123,6 @@ const computeEndDate = (days: string): string => {
   return d.toISOString();
 };
 
-// ── Leaflet Map Picker ─────────────────────────────────────────
 interface MapPickerProps {
   onSelect: (data: { lat: number; lng: number; name: string }) => void;
   selectedLat?: number;
@@ -130,7 +138,6 @@ function MapPicker({ onSelect, selectedLat, selectedLng }: MapPickerProps) {
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
 
-    // Inject Leaflet CSS
     if (!document.getElementById("leaflet-css")) {
       const link = document.createElement("link");
       link.id = "leaflet-css";
@@ -140,7 +147,6 @@ function MapPicker({ onSelect, selectedLat, selectedLng }: MapPickerProps) {
     }
 
     import("leaflet").then((L) => {
-      // Fix default marker icon paths
       // @ts-ignore
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -155,25 +161,20 @@ function MapPicker({ onSelect, selectedLat, selectedLng }: MapPickerProps) {
         [selectedLat ?? 27.7172, selectedLng ?? 85.324],
         selectedLat ? 12 : 7,
       );
-
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 19,
       }).addTo(map);
 
-      // If already has a location, show existing marker
       if (selectedLat && selectedLng) {
         markerRef.current = L.marker([selectedLat, selectedLng]).addTo(map);
       }
 
-      const handleClick = async (e: any) => {
+      map.on("click", async (e: any) => {
         const { lat, lng } = e.latlng;
-
         if (markerRef.current) map.removeLayer(markerRef.current);
         markerRef.current = L.marker([lat, lng]).addTo(map);
-
-        // Reverse geocode via Nominatim
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`,
@@ -186,7 +187,6 @@ function MapPicker({ onSelect, selectedLat, selectedLng }: MapPickerProps) {
             addr.village ||
             addr.municipality ||
             addr.county ||
-            addr.state_district ||
             addr.state ||
             data.display_name?.split(",")[0] ||
             `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
@@ -194,9 +194,8 @@ function MapPicker({ onSelect, selectedLat, selectedLng }: MapPickerProps) {
         } catch {
           onSelect({ lat, lng, name: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
         }
-      };
+      });
 
-      map.on("click", handleClick);
       mapRef.current = map;
     });
 
@@ -247,10 +246,7 @@ function MapPicker({ onSelect, selectedLat, selectedLng }: MapPickerProps) {
 
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-setu-200">
-      {/* Map container */}
       <div ref={mapContainerRef} className="w-full h-64" />
-
-      {/* Locate me button */}
       <button
         type="button"
         onClick={handleLocateMe}
@@ -264,8 +260,6 @@ function MapPicker({ onSelect, selectedLat, selectedLng }: MapPickerProps) {
         )}
         {locating ? "Locating…" : "Locate me"}
       </button>
-
-      {/* Hint overlay */}
       <div className="absolute top-3 left-3 z-[1000] bg-white/90 backdrop-blur-sm border border-setu-100 rounded-xl px-3 py-1.5 shadow-sm pointer-events-none">
         <p className="text-[11px] font-semibold text-setu-700 flex items-center gap-1.5">
           <MapPin className="w-3 h-3" /> Click on the map to pin your location
@@ -275,14 +269,26 @@ function MapPicker({ onSelect, selectedLat, selectedLng }: MapPickerProps) {
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────
 export default function CreateCampaignPage() {
   const [step, setStep] = useState(1);
   const [done, setDone] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const handleBlur = (field: string) => {
+    setFocused(null);
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const fileRef = useRef<HTMLInputElement>(null);
+  const docRef = useRef<HTMLInputElement>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+
+  // ── Document files state ───────────────────────────────────
+  const [docFiles, setDocFiles] = useState<
+    { file: File; name: string; docType: string }[]
+  >([]);
 
   const { mutate: createCampaign, isPending: submitting } = useCreateCampaign();
   const { data: categoriesData, isLoading: categoriesLoading } =
@@ -301,6 +307,8 @@ export default function CreateCampaignPage() {
     duration: "30",
     website: "",
     tags: "",
+    phoneNumber: "",
+    esewaId: "",
     agreeTerms: false,
   });
 
@@ -312,6 +320,35 @@ export default function CreateCampaignPage() {
     if (!file) return;
     setCoverFile(file);
     setCoverPreview(URL.createObjectURL(file));
+  };
+
+  // ── Document handlers ─────────────────────────────────────
+  const handleDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const remaining = 5 - docFiles.length;
+    const toAdd = files.slice(0, remaining).map((file) => ({
+      file,
+      name: file.name.replace(/\.[^/.]+$/, ""),
+      docType: "other",
+    }));
+    setDocFiles((prev) => [...prev, ...toAdd]);
+    // Reset input so same file can be re-added if removed
+    if (docRef.current) docRef.current.value = "";
+  };
+
+  const removeDoc = (index: number) => {
+    setDocFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateDocMeta = (
+    index: number,
+    field: "name" | "docType",
+    value: string,
+  ) => {
+    setDocFiles((prev) =>
+      prev.map((d, i) => (i === index ? { ...d, [field]: value } : d)),
+    );
   };
 
   const handleMapSelect = useCallback(
@@ -326,15 +363,15 @@ export default function CreateCampaignPage() {
     [],
   );
 
-  // ── FIX 3: image required in step 2 validation ──────────────
+  const isValidNPPhone = (v: string) => /^(97|98)\d{8}$/.test(v.trim());
+
   const canNext: Record<number, boolean> = {
-    1: form.title.trim().length >= 10 && !!form.categoryId && !!form.longitude,
+    1: form.title.trim().length >= 10 && !!form.categoryId && !!form.longitude && isValidNPPhone(form.phoneNumber) && isValidNPPhone(form.esewaId),
     2: form.story.trim().length >= 80 && !!coverFile,
-    3: !!form.goal && Number(form.goal) >= 10000 && !!form.duration,
+    3: !!form.goal && Number(form.goal) >= 10000 && Number(form.goal) <= 500000 && !!form.duration,
     4: form.agreeTerms,
   };
 
-  // ── FIX 2: guard before calling createCampaign ──────────────
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -345,13 +382,11 @@ export default function CreateCampaignPage() {
       setStep(2);
       return;
     }
-
     if (!form.longitude || !form.latitude) {
       toast.error("Please pin a location on the map before submitting.");
       setStep(1);
       return;
     }
-
     if (!form.categoryId) {
       toast.error("Please select a category.");
       setStep(1);
@@ -366,11 +401,17 @@ export default function CreateCampaignPage() {
         goalAmount: Number(form.goal),
         urgent: false,
         endDate: computeEndDate(form.duration),
+        phoneNumber: form.phoneNumber,
+        esewaId: form.esewaId,
         locationName: form.locationName,
         longitude: form.longitude,
         latitude: form.latitude,
         country: "Nepal",
         image: coverFile,
+        // ── Verification documents ──────────────────────────
+        documents: docFiles.map((d) => d.file),
+        documentNames: docFiles.map((d) => d.name),
+        documentTypes: docFiles.map((d) => d.docType),
       },
       { onSuccess: () => setDone(true) },
     );
@@ -379,7 +420,6 @@ export default function CreateCampaignPage() {
   const progress = Math.round((step / 4) * 100);
   const tip = tips[step - 1];
 
-  // ── Done screen ────────────────────────────────────────────────
   if (done) {
     return (
       <div
@@ -404,6 +444,9 @@ export default function CreateCampaignPage() {
           <p className="text-gray-500 text-sm leading-relaxed mb-2 max-w-sm mx-auto">
             Our team will verify your campaign within 24–48 hours. You'll
             receive an email once it goes live.
+          </p>
+          <p className="text-[12px] text-setu-500 font-medium mb-2">
+            Redirecting to My Campaigns in 5 seconds…
           </p>
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-8 text-left max-w-sm mx-auto">
             <p className="text-xs font-semibold text-amber-800 mb-0.5">
@@ -473,7 +516,6 @@ export default function CreateCampaignPage() {
         className="min-h-screen bg-cream"
         style={{ fontFamily: "var(--font-body)" }}
       >
-        {/* Top progress bar */}
         <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-setu-100">
           <div
             className="h-full bg-gradient-to-r from-setu-700 to-setu-400 transition-all duration-500"
@@ -481,8 +523,7 @@ export default function CreateCampaignPage() {
           />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-16">
-          {/* Back */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="mb-8">
             <Link
               href="/campaigns"
@@ -510,7 +551,6 @@ export default function CreateCampaignPage() {
                 </h1>
               </div>
 
-              {/* Step nav */}
               <div className="bg-white rounded-2xl border border-setu-100 shadow-[0_2px_12px_rgba(21,104,57,0.06)] p-4 mb-6">
                 {STEPS.map(({ n, label }) => {
                   const isDone = step > n;
@@ -548,7 +588,6 @@ export default function CreateCampaignPage() {
                 })}
               </div>
 
-              {/* Tip */}
               <div className="bg-setu-900 rounded-2xl p-5">
                 <div className="w-8 h-8 bg-setu-700/50 rounded-lg flex items-center justify-center mb-4">
                   <FileText className="w-4 h-4 text-setu-300" />
@@ -569,7 +608,6 @@ export default function CreateCampaignPage() {
             <div className="flex-1">
               <form onSubmit={handleSubmit}>
                 <div className="bg-white rounded-3xl border border-setu-100 shadow-[0_2px_16px_rgba(21,104,57,0.07)] overflow-hidden">
-                  {/* Step header */}
                   <div className="px-8 py-6 border-b border-setu-50 bg-setu-50/50">
                     <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-setu-500 mb-1">
                       Step {step} of 4
@@ -586,10 +624,9 @@ export default function CreateCampaignPage() {
                   </div>
 
                   <div className="p-8 space-y-7">
-                    {/* ════ STEP 1: Basic Info ════ */}
+                    {/* ════ STEP 1 ════ */}
                     {step === 1 && (
                       <>
-                        {/* Campaign title */}
                         <div>
                           <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
                             Campaign Title{" "}
@@ -607,31 +644,36 @@ export default function CreateCampaignPage() {
                               value={form.title}
                               onChange={(e) => set("title", e.target.value)}
                               onFocus={() => setFocused("title")}
-                              onBlur={() => setFocused(null)}
+                              onBlur={() => handleBlur("title")}
                               placeholder="e.g. Help Rebuild Homes in Jajarkot After the Earthquake"
                               maxLength={100}
-                              className="w-full pl-11 pr-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors"
+                              className={`w-full pl-11 pr-4 py-3.5 bg-white border rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors ${touched.title && (!form.title.trim() || form.title.trim().length < 10) ? "border-red-400 bg-red-50/30" : "border-setu-200"}`}
                             />
                           </div>
                           <div className="flex justify-between mt-1.5">
-                            <p
-                              className={`text-[11px] ${form.title.length > 0 && form.title.length < 10 ? "text-red-400" : "text-gray-400"}`}
-                            >
-                              {form.title.length < 10 && form.title.length > 0
-                                ? `${10 - form.title.length} more characters needed`
-                                : "Be specific — who, what, where"}
-                            </p>
+                            <div className="flex flex-col gap-0.5">
+                              <p className={`text-[11px] ${form.title.length > 0 && form.title.length < 10 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                                {form.title.length < 10 && form.title.length > 0
+                                  ? `${10 - form.title.length} more characters needed`
+                                  : "Be specific — who, what, where"}
+                              </p>
+                              {touched.title && !form.title.trim() && (
+                                <p className="text-[11px] text-red-500 font-medium">Campaign title is required.</p>
+                              )}
+                            </div>
                             <p className="text-[11px] text-gray-400">
                               {form.title.length}/100
                             </p>
                           </div>
                         </div>
 
-                        {/* Category — from API */}
                         <div>
                           <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-3">
                             Category <span className="text-red-400">*</span>
                           </label>
+                          {form.title.length > 0 && !form.categoryId && (
+                            <p className="text-[11px] text-red-500 font-medium mb-2">Please select a campaign category.</p>
+                          )}
                           {categoriesLoading ? (
                             <div className="flex items-center gap-2 text-[13px] text-gray-400 py-2">
                               <Loader2 className="w-4 h-4 animate-spin" />{" "}
@@ -694,20 +736,19 @@ export default function CreateCampaignPage() {
                           )}
                         </div>
 
-                        {/* ── Location — Leaflet Map ─────────────────────────── */}
                         <div>
                           <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
                             Campaign Location{" "}
                             <span className="text-red-400">*</span>
                           </label>
-
+                          {form.categoryId && !form.latitude && (
+                            <p className="text-[11px] text-red-500 font-medium mb-2">Campaign location is required. Please set it on the map.</p>
+                          )}
                           <MapPicker
                             onSelect={handleMapSelect}
                             selectedLat={form.latitude || undefined}
                             selectedLng={form.longitude || undefined}
                           />
-
-                          {/* Selected location display */}
                           {form.locationName ? (
                             <div className="mt-2.5 flex items-center gap-2.5 px-4 py-3 bg-setu-50 border border-setu-200 rounded-xl">
                               <div className="w-7 h-7 bg-setu-700 rounded-full flex items-center justify-center flex-shrink-0">
@@ -745,57 +786,56 @@ export default function CreateCampaignPage() {
                           )}
                         </div>
 
-                        {/* Beneficiary */}
-                        <div>
-                          <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
-                            Who will benefit?{" "}
-                            <span className="text-gray-400 normal-case font-normal tracking-normal">
-                              (optional)
-                            </span>
-                          </label>
-                          <div
-                            className={`relative rounded-xl transition-all duration-200 ${focused === "ben" ? "ring-2 ring-setu-500/30" : ""}`}
-                          >
-                            <Users
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${focused === "ben" ? "text-setu-600" : "text-gray-400"}`}
-                            />
-                            <input
-                              type="text"
-                              value={form.beneficiary}
-                              onChange={(e) =>
-                                set("beneficiary", e.target.value)
-                              }
-                              onFocus={() => setFocused("ben")}
-                              onBlur={() => setFocused(null)}
-                              placeholder="e.g. 200 families in Jajarkot district"
-                              className="w-full pl-11 pr-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Tags */}
-                        <div>
-                          <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
-                            Tags{" "}
-                            <span className="text-gray-400 normal-case font-normal tracking-normal">
-                              (optional)
-                            </span>
-                          </label>
-                          <div
-                            className={`relative rounded-xl transition-all duration-200 ${focused === "tags" ? "ring-2 ring-setu-500/30" : ""}`}
-                          >
-                            <Tag
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${focused === "tags" ? "text-setu-600" : "text-gray-400"}`}
-                            />
-                            <input
-                              type="text"
-                              value={form.tags}
-                              onChange={(e) => set("tags", e.target.value)}
-                              onFocus={() => setFocused("tags")}
-                              onBlur={() => setFocused(null)}
-                              placeholder="earthquake, shelter, urgent — comma separated"
-                              className="w-full pl-11 pr-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors"
-                            />
+                        {/* ── Payout Details ── */}
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-700 mb-1 flex items-center gap-1.5">
+                            🔒 Payout Details — Private &amp; Admin-only
+                          </p>
+                          <p className="text-[11px] text-amber-600 mb-4 leading-relaxed">
+                            This information is never shown to the public. Setu uses it only to transfer raised funds to you.
+                          </p>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
+                                Phone Number <span className="text-red-400">*</span>
+                              </label>
+                              <input
+                                type="tel"
+                                required
+                                value={form.phoneNumber}
+                                onChange={(e) => set("phoneNumber", e.target.value.replace(/\D/g, ""))}
+                                onFocus={() => setFocused("phoneNumber")}
+                                onBlur={() => handleBlur("phoneNumber")}
+                                placeholder="e.g. 9812345678"
+                                maxLength={10}
+                                className={`w-full px-4 py-3.5 bg-white border rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors ${touched.phoneNumber && !isValidNPPhone(form.phoneNumber) ? "border-red-400 bg-red-50/30" : "border-setu-200"}`}
+                              />
+                              {touched.phoneNumber && !isValidNPPhone(form.phoneNumber) && (
+                                <p className="text-[11px] text-red-500 font-medium mt-1">Must be exactly 10 digits and start with 97 or 98.</p>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
+                                eSewa ID <span className="text-red-400">*</span>
+                              </label>
+                              <input
+                                type="tel"
+                                required
+                                value={form.esewaId}
+                                onChange={(e) => set("esewaId", e.target.value.replace(/\D/g, ""))}
+                                onFocus={() => setFocused("esewaId")}
+                                onBlur={() => handleBlur("esewaId")}
+                                placeholder="e.g. 9812345678"
+                                maxLength={10}
+                                className={`w-full px-4 py-3.5 bg-white border rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors ${touched.esewaId && !isValidNPPhone(form.esewaId) ? "border-red-400 bg-red-50/30" : "border-setu-200"}`}
+                              />
+                              {touched.esewaId && !isValidNPPhone(form.esewaId) && (
+                                <p className="text-[11px] text-red-500 font-medium mt-1">Must be exactly 10 digits and start with 97 or 98.</p>
+                              )}
+                              <p className="text-[11px] text-gray-400 mt-1.5">
+                                Your eSewa registered phone number (97XXXXXXXX / 98XXXXXXXX).
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </>
@@ -804,7 +844,7 @@ export default function CreateCampaignPage() {
                     {/* ════ STEP 2: Story & Media ════ */}
                     {step === 2 && (
                       <>
-                        {/* Cover image — FIX 4: marked as required */}
+                        {/* Cover image */}
                         <div>
                           <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-3">
                             Cover Image <span className="text-red-400">*</span>
@@ -816,6 +856,9 @@ export default function CreateCampaignPage() {
                             onChange={handleCoverChange}
                             className="hidden"
                           />
+                          {!coverFile && form.story.length > 0 && (
+                            <p className="text-[11px] text-red-500 font-medium mb-2">Cover image is required.</p>
+                          )}
                           {coverPreview ? (
                             <div className="relative rounded-2xl overflow-hidden border-2 border-setu-200 h-52">
                               <img
@@ -866,27 +909,29 @@ export default function CreateCampaignPage() {
                             value={form.story}
                             onChange={(e) => set("story", e.target.value)}
                             onFocus={() => setFocused("story")}
-                            onBlur={() => setFocused(null)}
-                            placeholder="Tell donors who you're helping, what happened, what the funds will be used for, and why it matters. Be honest and specific — donors connect with real stories."
+                            onBlur={() => handleBlur("story")}
+                            placeholder="Tell donors who you're helping, what happened, what the funds will be used for, and why it matters."
                             rows={9}
                             maxLength={3000}
                             className={[
-                              "w-full px-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors resize-none leading-relaxed",
-                              focused === "story"
-                                ? "ring-2 ring-setu-500/30"
-                                : "",
+                              "w-full px-4 py-3.5 bg-white border rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors resize-none leading-relaxed",
+                              focused === "story" ? "ring-2 ring-setu-500/30" : "",
+                              touched.story && (!form.story.trim() || form.story.length < 80) ? "border-red-400 bg-red-50/30" : "border-setu-200"
                             ].join(" ")}
                           />
                           <div className="flex justify-between mt-1.5">
-                            <p
-                              className={`text-[11px] ${form.story.length > 0 && form.story.length < 80 ? "text-red-400" : "text-gray-400"}`}
-                            >
-                              {form.story.length > 0 && form.story.length < 80
-                                ? `${80 - form.story.length} more characters needed`
-                                : form.story.length >= 80
-                                  ? "Good length — the more detail the better"
-                                  : "Minimum 80 characters"}
-                            </p>
+                            <div className="flex flex-col gap-0.5">
+                              <p className={`text-[11px] ${form.story.length > 0 && form.story.length < 80 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                                {form.story.length > 0 && form.story.length < 80
+                                  ? `${80 - form.story.length} more characters needed`
+                                  : form.story.length >= 80
+                                    ? "Good length — the more detail the better"
+                                    : "Minimum 80 characters"}
+                              </p>
+                              {touched.story && !form.story.trim() && (
+                                <p className="text-[11px] text-red-500 font-medium">Campaign story is required.</p>
+                              )}
+                            </div>
                             <p className="text-[11px] text-gray-400">
                               {form.story.length}/3000
                             </p>
@@ -914,39 +959,124 @@ export default function CreateCampaignPage() {
                           </div>
                         </div>
 
-                        {/* Supporting doc */}
+                        {/* ── Verification Documents ── */}
                         <div>
-                          <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
-                            Supporting Document{" "}
-                            <span className="text-gray-400 normal-case font-normal tracking-normal">
-                              (optional, speeds up verification)
-                            </span>
+                          <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-1">
+                            Verification Documents
+                            <span className="text-gray-400 normal-case font-normal tracking-normal ml-1">
+                              (recommended — speeds up approval)
+                            </span>{" "}
+                            <span className="text-red-400">*</span>
                           </label>
-                          <button
-                            type="button"
-                            className="w-full flex items-center gap-4 px-5 py-4 bg-white border border-dashed border-setu-200 hover:border-setu-400 hover:bg-setu-50 rounded-xl transition-all cursor-pointer"
-                          >
-                            <div className="w-10 h-10 bg-setu-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                              <Upload className="w-4 h-4 text-setu-500" />
+                          <p className="text-[11px] text-gray-400 mb-3">
+                            Upload ward registration, NGO certificate, tax
+                            clearance or any official document that proves the
+                            campaign's legitimacy. Max 5 files, 20MB each.
+                          </p>
+
+                          {/* Hidden file input */}
+                          <input
+                            ref={docRef}
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            multiple
+                            onChange={handleDocChange}
+                            className="hidden"
+                          />
+
+                          {/* Upload button */}
+                          {docFiles.length < 5 && (
+                            <button
+                              type="button"
+                              onClick={() => docRef.current?.click()}
+                              className="w-full flex items-center gap-4 px-5 py-4 bg-white border-2 border-dashed border-setu-200 hover:border-setu-400 hover:bg-setu-50 rounded-xl transition-all cursor-pointer mb-3"
+                            >
+                              <div className="w-10 h-10 bg-setu-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <Upload className="w-4 h-4 text-setu-500" />
+                              </div>
+                              <div className="text-left">
+                                <p className="text-[13px] font-semibold text-setu-700">
+                                  Upload PDF, image or document
+                                </p>
+                                <p className="text-[11px] text-gray-400">
+                                  Ward registration, NGO letter, bank details —{" "}
+                                  {5 - docFiles.length} slot
+                                  {5 - docFiles.length !== 1 ? "s" : ""}{" "}
+                                  remaining
+                                </p>
+                              </div>
+                            </button>
+                          )}
+
+                          {/* Uploaded files list */}
+                          {docFiles.length > 0 && (
+                            <div className="space-y-2.5">
+                              {docFiles.map((doc, i) => (
+                                <div
+                                  key={i}
+                                  className="bg-setu-50 border border-setu-200 rounded-xl p-3.5"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-9 h-9 bg-setu-700 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      <FileCheck className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div className="flex-1 min-w-0 space-y-2">
+                                      {/* File name input */}
+                                      <input
+                                        type="text"
+                                        value={doc.name}
+                                        onChange={(e) =>
+                                          updateDocMeta(
+                                            i,
+                                            "name",
+                                            e.target.value,
+                                          )
+                                        }
+                                        placeholder="Document name"
+                                        className="w-full px-3 py-2 bg-white border border-setu-200 rounded-lg text-[13px] font-semibold text-setu-900 focus:outline-none focus:border-setu-400 transition-colors"
+                                      />
+                                      {/* Doc type selector */}
+                                      <select
+                                        value={doc.docType}
+                                        onChange={(e) =>
+                                          updateDocMeta(
+                                            i,
+                                            "docType",
+                                            e.target.value,
+                                          )
+                                        }
+                                        className="w-full px-3 py-2 bg-white border border-setu-200 rounded-lg text-[12px] text-setu-700 focus:outline-none focus:border-setu-400 transition-colors cursor-pointer"
+                                      >
+                                        {DOC_TYPES.map(({ value, label }) => (
+                                          <option key={value} value={value}>
+                                            {label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <p className="text-[10px] text-gray-400 truncate">
+                                        {doc.file.name} ·{" "}
+                                        {(doc.file.size / 1024).toFixed(0)} KB
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeDoc(i)}
+                                      className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent flex-shrink-0 mt-0.5"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                            <div className="text-left">
-                              <p className="text-[13px] font-semibold text-setu-700">
-                                Upload PDF or image
-                              </p>
-                              <p className="text-[11px] text-gray-400">
-                                Hospital records, government letters, photos —
-                                max 20MB
-                              </p>
-                            </div>
-                          </button>
+                          )}
                         </div>
                       </>
                     )}
 
-                    {/* ════ STEP 3: Goal & Timeline ════ */}
+                    {/* ════ STEP 3 ════ */}
                     {step === 3 && (
                       <>
-                        {/* Goal amount */}
                         <div>
                           <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
                             Fundraising Goal (NPR){" "}
@@ -967,14 +1097,21 @@ export default function CreateCampaignPage() {
                               type="number"
                               required
                               min={10000}
+                              max={500000}
                               value={form.goal}
                               onChange={(e) => set("goal", e.target.value)}
                               onFocus={() => setFocused("goal")}
-                              onBlur={() => setFocused(null)}
-                              placeholder="e.g. 500000"
-                              className="w-full pl-24 pr-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors"
+                              onBlur={() => handleBlur("goal")}
+                              placeholder="e.g. 100000"
+                              className={`w-full pl-24 pr-4 py-3.5 bg-white border rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors ${touched.goal && ((!form.goal || Number(form.goal) < 10000) || Number(form.goal) > 500000) ? "border-red-400 bg-red-50/30" : "border-setu-200"}`}
                             />
                           </div>
+                          {touched.goal && (!form.goal || Number(form.goal) < 10000) && (
+                            <p className="text-[11px] text-red-500 font-medium mt-1.5">Please enter a valid amount (minimum NPR 10,000).</p>
+                          )}
+                          {touched.goal && form.goal && Number(form.goal) > 500000 && (
+                            <p className="text-[11px] text-red-500 font-medium mt-1.5">Goal amount cannot exceed NPR 5,00,000 (5 Lakh).</p>
+                          )}
                           <div className="flex gap-2 flex-wrap mt-3">
                             {[25000, 50000, 100000, 250000, 500000].map(
                               (amt) => (
@@ -997,12 +1134,10 @@ export default function CreateCampaignPage() {
                             )}
                           </div>
                           <p className="text-[11px] text-gray-400 mt-2">
-                            Minimum NPR 10,000. You can adjust this after
-                            approval.
+                            Minimum NPR 10,000 · Maximum NPR 5,00,000. You can adjust this after approval.
                           </p>
                         </div>
 
-                        {/* Duration */}
                         <div>
                           <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-3">
                             Campaign Duration{" "}
@@ -1034,33 +1169,6 @@ export default function CreateCampaignPage() {
                           </div>
                         </div>
 
-                        {/* Website */}
-                        <div>
-                          <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
-                            Related Website{" "}
-                            <span className="text-gray-400 normal-case font-normal tracking-normal">
-                              (optional)
-                            </span>
-                          </label>
-                          <div
-                            className={`relative rounded-xl transition-all duration-200 ${focused === "website" ? "ring-2 ring-setu-500/30" : ""}`}
-                          >
-                            <Globe
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${focused === "website" ? "text-setu-600" : "text-gray-400"}`}
-                            />
-                            <input
-                              type="url"
-                              value={form.website}
-                              onChange={(e) => set("website", e.target.value)}
-                              onFocus={() => setFocused("website")}
-                              onBlur={() => setFocused(null)}
-                              placeholder="https://example.org"
-                              className="w-full pl-11 pr-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Fund breakdown */}
                         <div className="bg-setu-50 border border-setu-100 rounded-2xl p-5">
                           <p className="text-[12px] font-bold text-setu-700 uppercase tracking-[0.1em] mb-4">
                             How Setu handles funds
@@ -1106,7 +1214,6 @@ export default function CreateCampaignPage() {
                     {/* ════ STEP 4: Review ════ */}
                     {step === 4 && (
                       <>
-                        {/* Summary card */}
                         <div className="bg-white border border-setu-100 rounded-2xl overflow-hidden">
                           <div className="px-6 py-4 bg-setu-50 border-b border-setu-100">
                             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-setu-500">
@@ -1143,7 +1250,13 @@ export default function CreateCampaignPage() {
                                   ? `${form.duration} days`
                                   : "—",
                               },
-                              { label: "Tags", value: form.tags || "—" },
+                              {
+                                label: "Documents",
+                                value:
+                                  docFiles.length > 0
+                                    ? `${docFiles.length} document${docFiles.length !== 1 ? "s" : ""} uploaded`
+                                    : "None",
+                              },
                             ].map(({ label, value }) => (
                               <div
                                 key={label}
@@ -1152,7 +1265,9 @@ export default function CreateCampaignPage() {
                                 <span className="text-[12px] text-gray-400 font-medium">
                                   {label}
                                 </span>
-                                <span className="text-[13px] font-semibold text-setu-900 text-right max-w-[200px] truncate">
+                                <span
+                                  className={`text-[13px] font-semibold text-right max-w-[200px] truncate ${label === "Documents" && docFiles.length > 0 ? "text-setu-600" : "text-setu-900"}`}
+                                >
                                   {value || "—"}
                                 </span>
                               </div>
@@ -1168,7 +1283,6 @@ export default function CreateCampaignPage() {
                           </div>
                         </div>
 
-                        {/* Edit links */}
                         <div className="flex gap-3 flex-wrap">
                           {[
                             { n: 1, label: "Edit Basic Info" },
@@ -1186,7 +1300,6 @@ export default function CreateCampaignPage() {
                           ))}
                         </div>
 
-                        {/* Verification notice */}
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
                           <p className="text-[12px] font-bold text-amber-800 mb-1">
                             Verification takes 24–48 hours
@@ -1198,7 +1311,6 @@ export default function CreateCampaignPage() {
                           </p>
                         </div>
 
-                        {/* Terms */}
                         <div className="flex items-start gap-3">
                           <input
                             id="terms"
@@ -1237,7 +1349,6 @@ export default function CreateCampaignPage() {
                     )}
                   </div>
 
-                  {/* Footer nav */}
                   <div className="px-8 py-6 border-t border-setu-50 bg-setu-50/30 flex items-center justify-between gap-4">
                     {step > 1 ? (
                       <button

@@ -3,55 +3,50 @@ import upload from "../../middleware/upload.middleware.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
 import { verifyRole } from "../../middleware/role.middleware.js";
 import {
-  createTeam,
-  getAllTeams,
-  getAllTeamsAdmin,
-  getTeamById,
-  getMyTeams,
-  updateTeam,
-  deleteTeam,
-  joinTeam,
-  leaveTeam,
-  removeMember,
-  inviteMembers,
-  addCampaignToTeam,
-  getLeaderboard,
-  approveTeam,
-  rejectTeam,
-  suspendTeam,
-  unsuspendTeam,
+  createTeam, getAllTeams, getAllTeamsAdmin, getTeamById, getMyTeams,
+  updateTeam, deleteTeam, joinTeam, leaveTeam, removeMember,
+  inviteMembers, addCampaignToTeam, getLeaderboard, getTeamMessages,
+  approveJoinRequest, rejectJoinRequest,
+  approveTeam, rejectTeam, suspendTeam, unsuspendTeam,
+  validateInviteToken, acceptInvite,
 } from "./team.controller.js";
 
 const router = express.Router();
 
-// ─── Public Routes ────────────────────────────────────────────────────────────
-// IMPORTANT: specific string routes MUST come before /:id
-// otherwise /:id swallows everything (e.g. /leaderboard → id = "leaderboard")
+// ─── Public ───────────────────────────────────────────────────────────────────
 router.get("/leaderboard", getLeaderboard);
 router.get("/", getAllTeams);
+router.get("/invite/:token", validateInviteToken);
 router.get("/:id", getTeamById);
 
-// ─── Authenticated User Routes ────────────────────────────────────────────────
+// ─── Authenticated ────────────────────────────────────────────────────────────
 router.use(authMiddleware);
 
-// IMPORTANT: /user/my-teams must come BEFORE /:id or it is unreachable
-// The public /:id route above would have matched — but router.use(authMiddleware)
-// means we are now in a fresh middleware chain, so /user/my-teams is fine here.
 router.get("/user/my-teams", getMyTeams);
+router.get("/:id/messages", getTeamMessages);
+
 router.post("/", upload.single("avatar"), createTeam);
 router.put("/:id", upload.single("avatar"), updateTeam);
 router.delete("/:id", deleteTeam);
 
+// POST /:id/join → creates a join REQUEST (no longer direct membership)
 router.post("/:id/join", joinTeam);
 router.post("/:id/leave", leaveTeam);
 router.post("/:id/invite", inviteMembers);
 router.post("/:id/campaign", addCampaignToTeam);
 router.delete("/:id/members/:memberId", removeMember);
 
-// ─── Admin Only Routes ────────────────────────────────────────────────────────
+// ─── Join request approval (team admin or site admin) ─────────────────────────
+router.post("/:id/join-requests/:requestId/approve", approveJoinRequest);
+router.post("/:id/join-requests/:requestId/reject", rejectJoinRequest);
+
+// ─── Invite token acceptance (authenticated) ──────────────────────────────────
+router.post("/invite/:token/accept", acceptInvite);
+
+// ─── Site Admin Only ──────────────────────────────────────────────────────────
 router.use(verifyRole("admin"));
 
-router.get("/admin/all", getAllTeamsAdmin); // GET all teams regardless of status
+router.get("/admin/all", getAllTeamsAdmin);
 router.patch("/:id/approve", approveTeam);
 router.patch("/:id/reject", rejectTeam);
 router.patch("/:id/suspend", suspendTeam);

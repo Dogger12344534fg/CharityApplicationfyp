@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ModalProps {
   isOpen: boolean
@@ -9,6 +10,15 @@ interface ModalProps {
   title: string
   children: React.ReactNode
   footer?: React.ReactNode
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
+}
+
+const sizeClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+  full: 'max-w-[95vw]',
 }
 
 export function Modal({
@@ -17,6 +27,7 @@ export function Modal({
   title,
   children,
   footer,
+  size = 'md',
 }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
@@ -31,7 +42,7 @@ export function Modal({
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <>
       <div
         className="fixed inset-0 bg-black/50 z-40 transition-opacity"
@@ -39,7 +50,7 @@ export function Modal({
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="bg-white rounded-lg shadow-xl max-w-md w-full animate-fade-in-up"
+          className={`bg-white rounded-lg shadow-xl ${sizeClasses[size || 'md']} w-full animate-fade-in-up`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between p-6 border-b border-setu-100">
@@ -61,7 +72,8 @@ export function Modal({
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }
 

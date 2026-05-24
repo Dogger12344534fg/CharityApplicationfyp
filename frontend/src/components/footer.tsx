@@ -10,26 +10,19 @@ import {
 } from "lucide-react";
 
 const footerLinks = {
-  Platform: [
-    { label: "How It Works", href: "/how-it-works" },
+  "Browse": [
     { label: "Browse Campaigns", href: "/campaigns" },
-    { label: "Start a Campaign", href: "/register" },
-    { label: "Emergency Relief", href: "/campaigns?category=emergency" },
+    { label: "Start a Campaign", href: "/campaigns/create" },
     { label: "Hall of Fame", href: "/hall-of-fame" },
+  ],
+  "Platform": [
+    { label: "About Setu", href: "/about" },
+    { label: "How It Works", href: "/how-it-works" },
   ],
   Donate: [
     { label: "Money Donation", href: "/donations" },
     { label: "Goods Donation", href: "/donations/goods" },
-    { label: "One-Time Gift", href: "/donations?type=one-time" },
-    { label: "Monthly Giving", href: "/donations?type=monthly" },
     { label: "Team Campaigns", href: "/teams" },
-  ],
-  Company: [
-    { label: "About Setu", href: "/about" },
-    { label: "Our Impact", href: "/impact" },
-    { label: "Blog", href: "/blog" },
-    { label: "Press", href: "/press" },
-    { label: "Careers", href: "/careers" },
   ],
   Support: [
     { label: "Help Center", href: "/help" },
@@ -141,7 +134,7 @@ function SetuLogoFooter({ size = 44 }: { size?: number }) {
 export function Footer() {
   return (
     <footer className="bg-setu-950 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* ── Brand column ── */}
           <div className="lg:col-span-1">
@@ -182,18 +175,36 @@ export function Footer() {
                 <span>+977 9816404196</span>
               </div>
             </div>
-
-            <div className="flex gap-2.5 mt-6">
-              {[Facebook, Twitter, Instagram, Youtube].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-setu-400 hover:border-setu-500 hover:text-white hover:bg-white/5 transition-all duration-200"
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                </a>
-              ))}
-            </div>
+<div className="flex gap-2.5 mt-6">
+  {[
+    {
+      Icon: Facebook,
+      link: "https://facebook.com/yourusername",
+    },
+    {
+      Icon: Twitter,
+      link: "https://twitter.com/yourusername",
+    },
+    {
+      Icon: Instagram,
+      link: "https://instagram.com/yourusername",
+    },
+    {
+      Icon: Youtube,
+      link: "https://youtube.com/@yourchannel",
+    },
+  ].map(({ Icon, link }, i) => (
+    <a
+      key={i}
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-setu-400 hover:border-setu-500 hover:text-white hover:bg-white/5 transition-all duration-200"
+    >
+      <Icon className="w-3.5 h-3.5" />
+    </a>
+  ))}
+</div>
           </div>
 
           {/* ── Link columns ── */}

@@ -21,9 +21,9 @@ import { TeamCard } from "@/src/components/team-card";
 import {
   useGetAllTeams,
   useGetTeamLeaderboard,
-  useJoinTeam,
   type Team,
 } from "@/src/hooks/useTeam";
+import { usePublicStats, formatNPR, formatCount } from "@/src/hooks/usePublicStats";
 
 interface CardTeam {
   id: string;
@@ -60,23 +60,15 @@ export default function TeamsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [accumulated, setAccumulated] = useState<Team[]>([]);
 
-  const isMounted = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true;
-      return;
-    }
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setDebouncedSearch(searchInput);
       setPage(1);
     }, 400);
-
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -84,7 +76,7 @@ export default function TeamsPage() {
 
   const { data, isLoading, isFetching } = useGetAllTeams({
     page,
-    limit: 9,
+    limit: 6,
     privacy: "public",
     sortBy: "raisedAmount",
     order: "desc",
@@ -93,27 +85,22 @@ export default function TeamsPage() {
 
   const { data: leaderboardData, isLoading: leaderboardLoading } =
     useGetTeamLeaderboard(3);
-
-  const { mutate: joinTeam } = useJoinTeam();
-
-  useEffect(() => {
-    if (!data?.teams) return;
-    const teams = data.teams;
-    if (page === 1) {
-      setAccumulated(teams);
-    } else {
-      setAccumulated((prev) => {
-        const seen = new Set(prev.map((t) => t._id));
-        return [...prev, ...teams.filter((t) => !seen.has(t._id))];
-      });
-    }
-  }, [data?.teams, page]);
+  const { data: statsData } = usePublicStats();
+  const ps = statsData?.data;
 
   const totalPages = data?.pagination?.totalPages ?? 1;
-  const hasMore = page < totalPages;
+  const totalCount = data?.pagination?.total ?? 0;
 
-  const displayTeams = accumulated.map((t) => transformTeam(t));
+  const displayTeams = (data?.teams ?? []).map((t) => transformTeam(t));
   const leaderboardTeams = leaderboardData?.data ?? [];
+
+  // Pagination helpers
+  const getPageNumbers = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (page <= 4) return [1, 2, 3, 4, 5, "...", totalPages];
+    if (page >= totalPages - 3) return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, "...", page - 1, page, page + 1, "...", totalPages];
+  };
 
   return (
     <>
@@ -216,20 +203,18 @@ export default function TeamsPage() {
                   leaderboardTeams.map((t, i) => (
                     <div
                       key={t._id}
-                      className={`flex items-center gap-3 py-3 ${
-                        i < leaderboardTeams.length - 1
-                          ? "border-b border-white/[0.06]"
-                          : ""
-                      }`}
+                      className={`flex items-center gap-3 py-3 ${i < leaderboardTeams.length - 1
+                        ? "border-b border-white/[0.06]"
+                        : ""
+                        }`}
                     >
                       <span
-                        className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
-                          i === 0
-                            ? "bg-amber-400 text-amber-950"
-                            : i === 1
-                              ? "bg-slate-400 text-white"
-                              : "bg-orange-600 text-white"
-                        }`}
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black flex-shrink-0 ${i === 0
+                          ? "bg-amber-400 text-amber-950"
+                          : i === 1
+                            ? "bg-slate-400 text-white"
+                            : "bg-orange-600 text-white"
+                          }`}
                       >
                         {t.rank}
                       </span>
@@ -260,10 +245,10 @@ export default function TeamsPage() {
 
             <div className="flex flex-wrap gap-8 mt-10 pt-8 border-t border-setu-100">
               {[
-                { icon: Users, n: "140+", l: "Active Teams" },
+                { icon: Users, n: ps ? formatCount(ps.activeTeams) : "...", l: "Active Teams" },
                 { icon: Globe, n: "77", l: "Districts Covered" },
-                { icon: Target, n: "38+", l: "Team Campaigns" },
-                { icon: TrendingUp, n: "NPR 1.2Cr+", l: "Team Raised" },
+                { icon: Target, n: ps ? formatCount(ps.teamCampaigns) : "...", l: "Team Campaigns" },
+                { icon: TrendingUp, n: ps ? formatNPR(ps.teamRaised) : "...", l: "Team Raised" },
               ].map(({ icon: Icon, n, l }) => (
                 <div key={l} className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-setu-50 border border-setu-100 flex items-center justify-center">
@@ -385,37 +370,61 @@ export default function TeamsPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${isFetching ? "opacity-60" : "opacity-100"}`}>
                   {displayTeams.map((t) => (
                     <TeamCard key={t.id} t={t} />
                   ))}
                 </div>
 
-                <div className="flex justify-center mt-10">
-                  {hasMore ? (
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-10 flex-wrap">
+                    {/* Prev */}
                     <button
-                      onClick={() => {
-                        if (!isFetching) setPage((p) => p + 1);
-                      }}
-                      disabled={isFetching}
-                      className="inline-flex items-center gap-2 px-8 py-3.5 bg-white hover:bg-setu-50 border border-setu-200 hover:border-setu-400 text-setu-700 text-[14px] font-semibold rounded-full transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                      onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      disabled={page === 1 || isFetching}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-setu-200 text-setu-700 text-[13px] font-semibold rounded-full hover:bg-setu-50 hover:border-setu-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      {isFetching ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Loading…
-                        </>
-                      ) : (
-                        <>
-                          Load More Teams <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
+                      ← Prev
                     </button>
-                  ) : displayTeams.length > 0 ? (
-                    <p className="text-[13px] text-setu-600/50 font-medium">
-                      All teams loaded
-                    </p>
-                  ) : null}
-                </div>
+
+                    {/* Page numbers */}
+                    {getPageNumbers().map((p, i) =>
+                      p === "..." ? (
+                        <span key={`ellipsis-${i}`} className="px-1 text-gray-400 text-[13px] select-none">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => { setPage(p as number); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                          disabled={isFetching}
+                          className={`w-10 h-10 rounded-full text-[13px] font-bold transition-all cursor-pointer border ${
+                            page === p
+                              ? "bg-setu-700 text-white border-setu-700 shadow-[0_2px_10px_rgba(21,104,57,0.3)]"
+                              : "bg-white text-setu-700 border-setu-200 hover:border-setu-400 hover:bg-setu-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                    {/* Next */}
+                    <button
+                      onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      disabled={page === totalPages || isFetching}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-setu-200 text-setu-700 text-[13px] font-semibold rounded-full hover:bg-setu-50 hover:border-setu-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+
+                {/* Page info */}
+                {totalCount > 0 && (
+                  <p className="text-center text-[12px] text-setu-600/50 mt-3">
+                    Page {page} of {totalPages} · {totalCount} teams total
+                  </p>
+                )}
               </>
             )}
           </div>

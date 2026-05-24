@@ -41,9 +41,9 @@ export const getTopTeams = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
 
-    const teams = await Team.find({ status: "active", totalRaised: { $gt: 0 } })
-      .select("name avatar totalRaised memberCount")
-      .sort({ totalRaised: -1 })
+    const teams = await Team.find({ status: "active", privacy: "public" })
+      .select("name avatar raisedAmount memberCount")
+      .sort({ raisedAmount: -1 })
       .limit(parseInt(limit))
       .populate("members.user", "name");
 
@@ -52,7 +52,7 @@ export const getTopTeams = async (req, res) => {
       id: team._id,
       name: team.name,
       avatar: team.avatar?.url ?? null,
-      totalRaised: team.totalRaised ?? 0,
+      totalRaised: team.raisedAmount ?? 0,
       members: team.members?.length ?? 0,
     }));
 
@@ -74,9 +74,9 @@ export const getLeaderboard = async (req, res) => {
         )
         .sort({ totalDonated: -1 })
         .limit(parseInt(donorLimit)),
-      Team.find({ status: "active", totalRaised: { $gt: 0 } })
-        .select("name avatar totalRaised members")
-        .sort({ totalRaised: -1 })
+      Team.find({ status: "active", privacy: "public" })
+        .select("name avatar raisedAmount members")
+        .sort({ raisedAmount: -1 })
         .limit(parseInt(teamLimit)),
     ]);
 
@@ -102,7 +102,7 @@ export const getLeaderboard = async (req, res) => {
         id: t._id,
         name: t.name,
         avatar: t.avatar?.url ?? null,
-        totalRaised: t.totalRaised ?? 0,
+        totalRaised: t.raisedAmount ?? 0,
         members: t.members?.length ?? 0,
       })),
     });

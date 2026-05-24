@@ -4,7 +4,8 @@
 	"main": "index.js",
 	"scripts": {
 		"dev": "nodemon --env-file=.env src/server.js",
-		"start": "node --env-file=.env src/server.js"
+		"start": "node --env-file=.env src/server.js",
+		"fix-team-refs": "node --env-file=.env scripts/fix-team-null-references.js"
 	},
 	"keywords": [],
 	"author": "",
@@ -12,16 +13,22 @@
 	"description": "",
 	"dependencies": {
 		"bcrypt": "^6.0.0",
+		"bcryptjs": "^3.0.3",
 		"cloudinary": "^1.41.3",
 		"cors": "^2.8.6",
 		"dotenv": "^17.3.1",
 		"express": "^5.2.1",
+		"express-session": "^1.19.0",
 		"http-status-codes": "^2.3.0",
 		"jsonwebtoken": "^9.0.3",
 		"mongoose": "^9.2.3",
 		"multer": "^2.1.1",
 		"multer-storage-cloudinary": "^4.0.0",
-		"nodemailer": "^8.0.1"
+		"nodemailer": "^8.0.1",
+		"passport": "^0.7.0",
+		"passport-google-oauth20": "^2.0.0",
+		"socket.io": "^4.8.3",
+		"uuid": "^13.0.0"
 	},
 	"devDependencies": {
 		"nodemon": "^3.1.14"

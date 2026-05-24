@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Search,
@@ -20,6 +22,7 @@ import {
   Star,
   MessageCircle,
 } from "lucide-react";
+import { usePublicStats, formatNPR, formatCount } from "@/src/hooks/usePublicStats";
 
 const donorSteps = [
   {
@@ -119,6 +122,9 @@ const faqs = [
 ];
 
 export default function HowItWorksPage() {
+  const { data: statsData } = usePublicStats();
+  const ps = statsData?.data;
+
   return (
     <div
       className="bg-cream min-h-screen"
@@ -164,9 +170,9 @@ export default function HowItWorksPage() {
       {/* ── TRUST STATS ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 bg-setu-900">
         {[
-          { icon: TrendingUp, num: "NPR 2.4Cr+", label: "Total Raised" },
-          { icon: Heart, num: "1,200+", label: "Campaigns Funded" },
-          { icon: Users, num: "18,400+", label: "Active Donors" },
+          { icon: TrendingUp, num: ps ? formatNPR(ps.totalRaised) : "...", label: "Total Raised" },
+          { icon: Heart, num: ps ? formatCount(ps.completedCampaigns) : "...", label: "Campaigns Funded" },
+          { icon: Users, num: ps ? formatCount(ps.totalDonors) : "...", label: "Active Donors" },
           { icon: Clock, num: "< 24h", label: "Avg Verification" },
         ].map(({ icon: Icon, num, label }, i) => (
           <div
@@ -248,42 +254,31 @@ export default function HowItWorksPage() {
 
       {/* ── PAYMENT METHODS ── */}
       <section className="py-14 bg-white border-y border-setu-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3
-            className="text-[18px] font-bold text-setu-950 text-center mb-8"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Accepted Payment Methods
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
-            {[
-              {
-                icon: CreditCard,
-                label: "Visa / Mastercard",
-                sub: "International cards",
-              },
-              { icon: Smartphone, label: "eSewa", sub: "Nepal's #1 wallet" },
-              { icon: Smartphone, label: "Khalti", sub: "Digital payments" },
-              {
-                icon: CreditCard,
-                label: "Bank Transfer",
-                sub: "All Nepali banks",
-              },
-            ].map(({ icon: Icon, label, sub }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center gap-2 p-5 bg-setu-50 border border-setu-100 rounded-2xl text-center"
-              >
-                <div className="w-10 h-10 bg-white rounded-xl border border-setu-100 flex items-center justify-center shadow-sm">
-                  <Icon className="w-5 h-5 text-setu-600" />
-                </div>
-                <p className="text-[13px] font-bold text-setu-900">{label}</p>
-                <p className="text-[11px] text-setu-600/55">{sub}</p>
-              </div>
-            ))}
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h3
+      className="text-[18px] font-bold text-setu-950 text-center mb-8"
+      style={{ fontFamily: "var(--font-display)" }}
+    >
+      Accepted Payment Methods
+    </h3>
+    <div className="flex justify-center gap-4">
+      {[
+        { icon: Smartphone, label: "eSewa", sub: "Nepal's #1 wallet" },
+      ].map(({ icon: Icon, label, sub }) => (
+        <div
+          key={label}
+          className="flex flex-col items-center gap-2 p-5 bg-setu-50 border border-setu-100 rounded-2xl text-center w-36"
+        >
+          <div className="w-10 h-10 bg-white rounded-xl border border-setu-100 flex items-center justify-center shadow-sm">
+            <Icon className="w-5 h-5 text-setu-600" />
           </div>
+          <p className="text-[13px] font-bold text-setu-900">{label}</p>
+          <p className="text-[11px] text-setu-600/55">{sub}</p>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* ── FOR CAMPAIGNERS ── */}
       <section className="py-20 bg-setu-50" id="campaigners">
@@ -360,7 +355,7 @@ export default function HowItWorksPage() {
                 Still have questions? We're here to help.
               </p>
               <Link
-                href="/contact"
+                href="/contact-report"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-setu-700 hover:bg-setu-600 text-white text-[14px] font-bold rounded-full no-underline transition-all shadow-[0_4px_14px_rgba(21,104,57,0.3)]"
               >
                 <MessageCircle className="w-4 h-4" />

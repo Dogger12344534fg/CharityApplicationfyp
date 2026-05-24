@@ -6,12 +6,40 @@ export interface DashboardOverview {
   activeCampaigns: number;
   totalDonors: number;
   completedTransactions: number;
+  totalGoodsDonations: number;
+  totalGoodsItems: number;
+  setuRevenue: number;
+  reportsGenerated: number;
+  completionRate: number;
+  totalDistribution: number;
+  operatingCost: number;
+  efficiencyRate: number;
   trends: {
     donations: number;
     campaigns: number;
     donors: number;
     transactions: number;
+    goodsDonations: number;
+    goodsItems: number;
+    setuRevenue: number;
+    reports: number;
+    completionRate: number;
   };
+}
+
+export interface RecentGoodsDonation {
+  id: string;
+  donorName: string;
+  campaignTitle: string;
+  items: number;
+  date: string;
+  status: string;
+}
+
+export interface GoodsMonthlyTrend {
+  month: string;
+  count: number;
+  items: number;
 }
 
 export interface CampaignStatusDistribution {
@@ -61,7 +89,9 @@ export interface DashboardData {
   campaignStats: CampaignStats;
   categoryDistribution: CategoryDistribution[];
   monthlyTrends: MonthlyTrend[];
+  goodsMonthlyTrends: GoodsMonthlyTrend[];
   recentTransactions: RecentTransaction[];
+  recentGoodsDonations: RecentGoodsDonation[];
   quickStats: QuickStats;
 }
 

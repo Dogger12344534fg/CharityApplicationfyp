@@ -47,13 +47,10 @@ const commentSchema = new mongoose.Schema(
 );
 
 // Validate: must have text OR at least one media item
-commentSchema.pre("validate", function (next) {
+commentSchema.pre("validate", function () {
   if (!this.text?.trim() && this.media.length === 0) {
-    return next(
-      new Error("A comment must have text or at least one media attachment."),
-    );
+    throw new Error("A comment must have text or at least one media attachment.");
   }
-  next();
 });
 
 commentSchema.index({ campaign: 1, createdAt: -1 });

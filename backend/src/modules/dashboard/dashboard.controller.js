@@ -2,6 +2,8 @@ import Campaign from "../campaigns/campaign.model.js";
 import Payment from "../payment/payment.model.js";
 import User from "../users/user.model.js";
 import Category from "../category/category.model.js";
+import GoodsDonation from "../goods/goods.model.js";
+import Team from "../teams/team.model.js";
 
 // ─── Get Dashboard Overview Stats ────────────────────────────────────────────
 export const getDashboardStats = async (req, res) => {
@@ -18,7 +20,9 @@ export const getDashboardStats = async (req, res) => {
       userStats,
       categoryStats,
       monthlyTrends,
-      recentTransactions
+      recentTransactions,
+      goodsStats,
+      recentGoodsDonations
     ] = await Promise.all([
       // Campaign statistics
       Campaign.aggregate([
@@ -67,6 +71,7 @@ export const getDashboardStats = async (req, res) => {
                 $group: {
                   _id: null,
                   totalRevenue: { $sum: "$amount" },
+                  totalTips: { $sum: "$tipAmount" },
                   completedCount: { $sum: 1 },
                   avgTransaction: { $avg: "$amount" }
                 }
@@ -87,6 +92,7 @@ export const getDashboardStats = async (req, res) => {
                 $group: {
                   _id: null,
                   revenue: { $sum: "$amount" },
+                  tips: { $sum: "$tipAmount" },
                   count: { $sum: 1 }
                 }
               }
@@ -105,6 +111,7 @@ export const getDashboardStats = async (req, res) => {
                 $group: {
                   _id: null,
                   revenue: { $sum: "$amount" },
+                  tips: { $sum: "$tipAmount" },
                   count: { $sum: 1 }
                 }
               }
@@ -207,6 +214,60 @@ export const getDashboardStats = async (req, res) => {
         .populate("donor", "name")
         .sort({ paidAt: -1 })
         .limit(10)
+        .lean(),
+
+      // Goods Donation statistics and trends
+      GoodsDonation.aggregate([
+        {
+          $facet: {
+            totalStats: [
+              { $group: { _id: null, count: { $sum: 1 }, items: { $sum: "$totalItems" } } }
+            ],
+            currentMonthStats: [
+              { $match: { createdAt: { $gte: currentMonthStart } } },
+              { $group: { _id: null, count: { $sum: 1 }, items: { $sum: "$totalItems" } } }
+            ],
+            previousMonthStats: [
+              { 
+                $match: { 
+                  createdAt: { 
+                    $gte: previousMonthStart,
+                    $lte: previousMonthEnd
+                  }
+                }
+              },
+              { $group: { _id: null, count: { $sum: 1 }, items: { $sum: "$totalItems" } } }
+            ],
+            monthlyTrends: [
+              {
+                $match: {
+                  createdAt: {
+                    $gte: new Date(now.getFullYear(), now.getMonth() - 5, 1)
+                  }
+                }
+              },
+              {
+                $group: {
+                  _id: {
+                    year: { $year: "$createdAt" },
+                    month: { $month: "$createdAt" }
+                  },
+                  count: { $sum: 1 },
+                  items: { $sum: "$totalItems" }
+                }
+              },
+              { $sort: { "_id.year": 1, "_id.month": 1 } }
+            ]
+          }
+        }
+      ]),
+
+      // Recent Goods Donations
+      GoodsDonation.find()
+        .populate("campaign", "title")
+        .populate("donor", "name")
+        .sort({ createdAt: -1 })
+        .limit(10)
         .lean()
     ]);
 
@@ -255,17 +316,52 @@ export const getDashboardStats = async (req, res) => {
       status: txn.status
     }));
 
+    const totalGoods = goodsStats[0]?.totalStats[0] || { count: 0, items: 0 };
+    const currentGoods = goodsStats[0]?.currentMonthStats[0] || { count: 0, items: 0 };
+    const previousGoods = goodsStats[0]?.previousMonthStats[0] || { count: 0, items: 0 };
+
+    const formattedGoodsMonthlyTrends = (goodsStats[0]?.monthlyTrends || []).map(trend => ({
+      month: monthNames[trend._id.month - 1],
+      count: trend.count,
+      items: trend.items
+    }));
+
+    const formattedRecentGoodsDonations = recentGoodsDonations.map(donation => ({
+      id: donation._id,
+      donorName: donation.donor?.name || "Unknown",
+      campaignTitle: donation.campaign?.title || "Unknown Campaign",
+      items: donation.totalItems,
+      date: donation.createdAt,
+      status: donation.status
+    }));
+
+    const totalCampaigns = totalCampaignStats.totalCampaigns || 0;
+    const completedCampaigns = campaignStatusCounts.completed || 0;
+
     const dashboardData = {
       overview: {
         totalDonations: totalPaymentStats.totalRevenue || 0,
         activeCampaigns: (campaignStatusCounts.active || 0) + (campaignStatusCounts.approved || 0),
         totalDonors: totalUserStats.totalDonors || 0,
         completedTransactions: totalPaymentStats.completedCount || 0,
+        totalGoodsDonations: totalGoods.count,
+        totalGoodsItems: totalGoods.items,
+        setuRevenue: totalPaymentStats.totalTips || 0,
+        reportsGenerated: 0,
+        completionRate: totalCampaigns > 0 ? Math.round((completedCampaigns / totalCampaigns) * 100) : 0,
+        totalDistribution: 0,
+        operatingCost: 0,
+        efficiencyRate: 0,
         trends: {
           donations: calculateTrend(currentPayments.revenue || 0, previousPayments.revenue || 0),
           campaigns: calculateTrend(currentCampaigns, previousCampaigns),
           donors: calculateTrend(currentUsers, previousUsers),
-          transactions: calculateTrend(currentPayments.count || 0, previousPayments.count || 0)
+          transactions: calculateTrend(currentPayments.count || 0, previousPayments.count || 0),
+          goodsDonations: calculateTrend(currentGoods.count, previousGoods.count),
+          goodsItems: calculateTrend(currentGoods.items, previousGoods.items),
+          setuRevenue: calculateTrend(currentPayments.tips || 0, previousPayments.tips || 0),
+          reports: 0,
+          completionRate: 0 // Could calculate if we tracked historical data
         }
       },
       campaignStats: {
@@ -274,14 +370,16 @@ export const getDashboardStats = async (req, res) => {
           value: count,
           fill: getStatusColor(status)
         })),
-        totalCampaigns: totalCampaignStats.totalCampaigns || 0,
+        totalCampaigns: totalCampaigns,
         totalRaised: totalCampaignStats.totalRaised || 0,
         totalGoal: totalCampaignStats.totalGoal || 0,
         avgDonorsPerCampaign: Math.round(totalCampaignStats.avgDonorsPerCampaign || 0)
       },
       categoryDistribution: categoryStats,
       monthlyTrends: formattedMonthlyTrends,
+      goodsMonthlyTrends: formattedGoodsMonthlyTrends,
       recentTransactions: formattedRecentTransactions,
+      recentGoodsDonations: formattedRecentGoodsDonations,
       quickStats: {
         averageDonation: Math.round(totalPaymentStats.avgTransaction || 0),
         fundingProgress: totalCampaignStats.totalGoal > 0 
@@ -301,6 +399,71 @@ export const getDashboardStats = async (req, res) => {
       success: false, 
       message: error.message 
     });
+  }
+};
+
+// ─── Public Stats (no auth) ───────────────────────────────────────────────────
+export const getPublicStats = async (req, res) => {
+  try {
+    const [campaignAgg, totalDonors, teamAgg, goodsPackages] = await Promise.all([
+      Campaign.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+            totalRaised: { $sum: "$raisedAmount" },
+          },
+        },
+      ]),
+      User.countDocuments({ donationsCount: { $gt: 0 } }),
+      Team.aggregate([
+        { $match: { status: "active" } },
+        {
+          $project: {
+            campaignCount: { $size: "$campaigns" },
+            raisedAmount: 1,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            activeTeams: { $sum: 1 },
+            teamCampaigns: { $sum: "$campaignCount" },
+            teamRaised: { $sum: "$raisedAmount" },
+          },
+        },
+      ]),
+      GoodsDonation.countDocuments(),
+    ]);
+
+    const statusMap = campaignAgg.reduce((acc, s) => {
+      acc[s._id] = { count: s.count, raised: s.totalRaised };
+      return acc;
+    }, {});
+
+    const totalRaised = Object.values(statusMap).reduce(
+      (sum, s) => sum + s.raised,
+      0,
+    );
+    const activeCampaigns = statusMap.active?.count ?? 0;
+    const completedCampaigns = statusMap.completed?.count ?? 0;
+    const teamData = teamAgg[0] ?? { activeTeams: 0, teamCampaigns: 0, teamRaised: 0 };
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        activeCampaigns,
+        completedCampaigns,
+        totalRaised,
+        totalDonors,
+        activeTeams: teamData.activeTeams,
+        teamCampaigns: teamData.teamCampaigns,
+        teamRaised: teamData.teamRaised,
+        goodsPackages,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 

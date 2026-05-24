@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Heart,
@@ -13,45 +15,13 @@ import {
   Eye,
   Package,
 } from "lucide-react";
+import { usePublicStats, formatNPR, formatCount } from "@/src/hooks/usePublicStats";
 
-const team = [
-  {
-    name: "Dipendra Roka",
-    role: "Founder & CEO",
-    img: 8,
-    bio: "Passionate about leveraging technology to solve Nepal's social challenges.",
-  },
-  {
-    name: "Sita Karmacharya",
-    role: "CTO",
-    img: 22,
-    bio: "Full-stack engineer with a decade of experience building fintech platforms.",
-  },
-  {
-    name: "Rohan Shrestha",
-    role: "Head of Operations",
-    img: 15,
-    bio: "Former NGO director with deep expertise in disaster relief coordination.",
-  },
-  {
-    name: "Anjali Tamang",
-    role: "Head of Community",
-    img: 30,
-    bio: "Community organizer who has worked across all 7 provinces of Nepal.",
-  },
-  {
-    name: "Bikram Gurung",
-    role: "Lead Designer",
-    img: 45,
-    bio: "UI/UX designer dedicated to making giving as simple and beautiful as possible.",
-  },
-  {
-    name: "Priya Maharjan",
-    role: "Head of Partnerships",
-    img: 50,
-    bio: "Builds relationships with NGOs, government bodies, and corporate donors.",
-  },
-];
+const founder = {
+  name: "Dipendra Roka",
+  role: "Founder & CEO",
+  img: "/images/dipendra.png",
+};
 
 const milestones = [
   {
@@ -117,7 +87,120 @@ const values = [
   },
 ];
 
+function AboutIllustration() {
+  return (
+    <svg
+      viewBox="0 0 380 280"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      aria-hidden="true"
+    >
+      {/* Subtle dark blob background */}
+      <ellipse cx="190" cy="148" rx="168" ry="118" fill="#0f2e1a" opacity="0.6" />
+
+      {/* ── Bridge structure ── */}
+      {/* Road / base */}
+      <rect x="50" y="178" width="280" height="12" rx="4" fill="#1a8048" />
+      {/* Left tower */}
+      <rect x="98" y="100" width="14" height="90" rx="3" fill="#22c55e" />
+      {/* Right tower */}
+      <rect x="268" y="100" width="14" height="90" rx="3" fill="#22c55e" />
+      {/* Left tower cap */}
+      <rect x="92" y="94" width="26" height="10" rx="3" fill="#4ade80" />
+      {/* Right tower cap */}
+      <rect x="262" y="94" width="26" height="10" rx="3" fill="#4ade80" />
+
+      {/* Main cable — left arc */}
+      <path
+        d="M105 94 Q148 148 190 162 Q232 148 275 94"
+        stroke="#4ade80"
+        strokeWidth="2.5"
+        fill="none"
+        strokeLinecap="round"
+      />
+      {/* Suspender cables */}
+      {[130, 152, 172, 190, 208, 228, 250].map((x, i) => {
+        // y on the cable curve (approximate parabola)
+        const t = (x - 105) / 170;
+        const cy = 94 + 68 * (1 - Math.pow(2 * t - 1, 2));
+        return (
+          <line
+            key={x}
+            x1={x}
+            y1={cy}
+            x2={x}
+            y2={178}
+            stroke="#86efac"
+            strokeWidth="1"
+            opacity="0.5"
+          />
+        );
+      })}
+
+      
+      {/* Heart above donor */}
+      <path
+        d="M42 134 Q40 130 36 130 Q32 130 32 135 Q32 140 42 146 Q52 140 52 135 Q52 130 48 130 Q44 130 42 134 Z"
+        fill="#4ade80"
+        opacity="0.85"
+      />
+      {/* Donor label */}
+      <rect x="22" y="186" width="48" height="16" rx="8" fill="#156839" />
+      <text x="46" y="198" textAnchor="middle" fill="white" fontSize="7" fontWeight="700" fontFamily="sans-serif">DONOR</text>
+
+      {/* ── Right side: beneficiary figure ── */}
+      <circle cx="334" cy="148" r="10" fill="#156839" />
+      <path d="M324 178 Q334 160 344 178" fill="#156839" />
+      {/* Star / sparkle above beneficiary */}
+      <path
+        d="M334 128 L336 134 L342 134 L337 138 L339 144 L334 140 L329 144 L331 138 L326 134 L332 134 Z"
+        fill="#4ade80"
+        opacity="0.85"
+      />
+      {/* Beneficiary label */}
+      <rect x="302" y="186" width="64" height="16" rx="8" fill="#156839" />
+      <text x="334" y="198" textAnchor="middle" fill="white" fontSize="7" fontWeight="700" fontFamily="sans-serif">BENEFICIARY</text>
+
+      {/* ── Setu badge in the centre of bridge ── */}
+      <rect x="162" y="150" width="56" height="24" rx="12" fill="#22c55e" />
+      <text x="190" y="166" textAnchor="middle" fill="white" fontSize="9" fontWeight="800" fontFamily="sans-serif" letterSpacing="1">SETU</text>
+
+      {/* ── Floating stat cards ── */}
+      {/* Left card */}
+      <rect x="24" y="58" width="68" height="28" rx="8" fill="#0f2e1a" stroke="#22c55e" strokeWidth="1" opacity="0.9" />
+      <text x="58" y="70" textAnchor="middle" fill="#4ade80" fontSize="9" fontWeight="800" fontFamily="sans-serif">NPR 2.4Cr</text>
+      <text x="58" y="80" textAnchor="middle" fill="#86efac" fontSize="6.5" fontFamily="sans-serif" opacity="0.7">Total Raised</text>
+
+      {/* Right card */}
+      <rect x="288" y="58" width="68" height="28" rx="8" fill="#0f2e1a" stroke="#22c55e" strokeWidth="1" opacity="0.9" />
+      <text x="322" y="70" textAnchor="middle" fill="#4ade80" fontSize="9" fontWeight="800" fontFamily="sans-serif">18,400+</text>
+      <text x="322" y="80" textAnchor="middle" fill="#86efac" fontSize="6.5" fontFamily="sans-serif" opacity="0.7">Donors</text>
+
+      {/* Top centre card */}
+      <rect x="152" y="42" width="76" height="28" rx="8" fill="#0f2e1a" stroke="#22c55e" strokeWidth="1" opacity="0.9" />
+      <text x="190" y="54" textAnchor="middle" fill="#4ade80" fontSize="9" fontWeight="800" fontFamily="sans-serif">77 Districts</text>
+      <text x="190" y="64" textAnchor="middle" fill="#86efac" fontSize="6.5" fontFamily="sans-serif" opacity="0.7">Across Nepal</text>
+
+      {/* Floating accent dots */}
+      <circle cx="130" cy="62" r="4" fill="#4ade80" opacity="0.4" />
+      <circle cx="252" cy="62" r="4" fill="#4ade80" opacity="0.4" />
+      <circle cx="72" cy="112" r="3" fill="#86efac" opacity="0.35" />
+      <circle cx="310" cy="112" r="3" fill="#86efac" opacity="0.35" />
+      <circle cx="190" cy="228" r="3" fill="#4ade80" opacity="0.3" />
+
+      {/* Bottom pill */}
+      <rect x="120" y="218" width="140" height="26" rx="13" fill="#22c55e" opacity="0.15" />
+      <rect x="120" y="218" width="140" height="26" rx="13" stroke="#4ade80" strokeWidth="1" opacity="0.3" />
+      <text x="190" y="235" textAnchor="middle" fill="#86efac" fontSize="9" fontWeight="700" fontFamily="sans-serif" letterSpacing="0.5">Bridging Nepal's Heart of Giving</text>
+    </svg>
+  );
+}
+
 export default function AboutPage() {
+  const { data: statsData } = usePublicStats();
+  const ps = statsData?.data;
+
   return (
     <div
       className="bg-cream min-h-screen"
@@ -134,8 +217,9 @@ export default function AboutPage() {
         />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] border border-setu-800/20 rounded-full pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-setu-800/30 rounded-full pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="max-w-2xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+          {/* Text */}
+          <div className="flex-1 max-w-2xl">
             <div className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-setu-400 mb-5">
               <div className="w-6 h-[2px] bg-setu-500 rounded" />
               Our Story
@@ -168,15 +252,21 @@ export default function AboutPage() {
               </Link>
             </div>
           </div>
+          {/* Illustration */}
+          <div className="w-full lg:w-[400px] flex-shrink-0">
+            <div className="rounded-2xl border border-white/10 p-4 bg-white/5 backdrop-blur-sm shadow-[0_2px_24px_rgba(0,0,0,0.3)]">
+              <AboutIllustration />
+            </div>
+          </div>
         </div>
       </section>
 
       {/* ── STATS ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 bg-setu-900">
         {[
-          { icon: TrendingUp, num: "NPR 2.4Cr+", label: "Total Raised" },
-          { icon: Heart, num: "1,200+", label: "Campaigns Funded" },
-          { icon: Users, num: "18,400+", label: "Active Donors" },
+          { icon: TrendingUp, num: ps ? formatNPR(ps.totalRaised) : "...", label: "Total Raised" },
+          { icon: Heart, num: ps ? formatCount(ps.completedCampaigns) : "...", label: "Campaigns Funded" },
+          { icon: Users, num: ps ? formatCount(ps.totalDonors) : "...", label: "Active Donors" },
           { icon: MapPin, num: "77", label: "Districts Served" },
         ].map(({ icon: Icon, num, label }, i) => (
           <div
@@ -254,24 +344,6 @@ export default function AboutPage() {
                 alt="Setu mission"
                 className="rounded-3xl w-full h-[440px] object-cover shadow-[0_24px_60px_rgba(21,104,57,0.15)]"
               />
-              <div className="absolute -bottom-5 -left-5 bg-white rounded-2xl border border-setu-100 shadow-[0_8px_28px_rgba(21,104,57,0.12)] p-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-setu-700 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Heart className="w-5 h-5 text-white fill-white" />
-                  </div>
-                  <div>
-                    <p
-                      className="text-[15px] font-bold text-setu-900"
-                      style={{ fontFamily: "var(--font-display)" }}
-                    >
-                      NPR 2.4Cr+
-                    </p>
-                    <p className="text-[11px] text-setu-600/60">
-                      raised for Nepal
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -319,53 +391,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── TIMELINE ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <div className="flex items-center justify-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-setu-600 mb-4">
-              <div className="w-6 h-[2px] bg-setu-500 rounded" />
-              Our Journey
-              <div className="w-6 h-[2px] bg-setu-500 rounded" />
-            </div>
-            <h2
-              className="text-[clamp(28px,4vw,44px)] font-bold text-setu-950 tracking-[-0.5px]"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              Building the Bridge
-            </h2>
-          </div>
-          <div className="max-w-3xl mx-auto">
-            {milestones.map((m, i) => (
-              <div key={i} className="flex gap-6 pb-8 last:pb-0">
-                <div className="flex flex-col items-center flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-setu-700 flex items-center justify-center text-white text-[11px] font-black border-4 border-white shadow-[0_0_0_2px_rgba(21,104,57,0.2)]">
-                    {i + 1}
-                  </div>
-                  {i < milestones.length - 1 && (
-                    <div className="w-0.5 flex-1 bg-setu-100 mt-2" />
-                  )}
-                </div>
-                <div className="pb-2">
-                  <span className="text-[11px] font-bold text-setu-500 uppercase tracking-wide">
-                    {m.year}
-                  </span>
-                  <h3
-                    className="text-[17px] font-bold text-setu-950 mt-0.5 mb-1.5"
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    {m.title}
-                  </h3>
-                  <p className="text-[14px] text-gray-500 leading-[1.7]">
-                    {m.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── TEAM ── */}
       <section className="py-20 bg-setu-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -379,77 +404,61 @@ export default function AboutPage() {
               className="text-[clamp(28px,4vw,44px)] font-bold text-setu-950 tracking-[-0.5px]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Meet the Team
+              Meet the Man behind SETU
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {team.map(({ name, role, img, bio }) => (
-              <div
-                key={name}
-                className="bg-white rounded-2xl p-6 border border-setu-100 hover:shadow-[0_8px_28px_rgba(21,104,57,0.08)] hover:-translate-y-1 transition-all duration-300"
+          <div className="flex justify-center">
+            <div className="bg-white rounded-2xl p-8 border border-setu-100 hover:shadow-[0_8px_28px_rgba(21,104,57,0.08)] hover:-translate-y-1 transition-all duration-300 w-full max-w-sm text-center">
+              <img
+                src={founder.img}
+                alt={founder.name}
+                className="w-24 h-24 rounded-full border-2 border-setu-100 object-cover mx-auto mb-4"
+              />
+              <p
+                className="text-[17px] font-bold text-setu-950 mb-1"
+                style={{ fontFamily: "var(--font-display)" }}
               >
-                <div className="flex items-center gap-4 mb-4">
-                  <img
-                    src={`https://i.pravatar.cc/80?img=${img}`}
-                    alt={name}
-                    className="w-14 h-14 rounded-full border-2 border-setu-100 object-cover"
-                  />
-                  <div>
-                    <p
-                      className="text-[15px] font-bold text-setu-950"
-                      style={{ fontFamily: "var(--font-display)" }}
-                    >
-                      {name}
-                    </p>
-                    <p className="text-[12px] text-setu-600 font-medium">
-                      {role}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-[13px] text-gray-500 leading-[1.7]">{bio}</p>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-10">
-            <Link
-              href="/careers"
-              className="inline-flex items-center gap-2 px-7 py-3.5 bg-setu-700 hover:bg-setu-600 text-white text-[14px] font-bold rounded-full no-underline shadow-[0_6px_20px_rgba(21,104,57,0.3)] hover:-translate-y-0.5 transition-all"
-            >
-              Join Our Team <ArrowRight className="w-4 h-4" />
-            </Link>
+                {founder.name}
+              </p>
+              <p className="text-[13px] text-setu-600 font-medium mb-3">
+                {founder.role}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── CTA ── */}
-      <section className="py-24 bg-setu-950 relative overflow-hidden mx-4 sm:mx-6 lg:mx-8 rounded-[28px] mb-16 mt-8">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(34,160,91,0.15) 0%, transparent 70%)",
-          }}
-        />
-        <div className="relative max-w-2xl mx-auto text-center px-6">
-          <h2
-            className="text-[clamp(32px,4vw,52px)] font-bold text-white leading-[1.07] tracking-[-1px] mb-5"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Be Part of the
-            <br />
-            <em className="italic text-setu-400">Bridge.</em>
-          </h2>
-          <p className="text-[16px] text-white/45 mb-10 leading-[1.75]">
-            Every donation, every campaign, every share builds a stronger Nepal.
-          </p>
-          <Link
-            href="/campaigns"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-setu-500 hover:bg-setu-400 text-white text-[15px] font-bold rounded-full no-underline shadow-[0_8px_28px_rgba(34,160,91,0.4)] hover:-translate-y-0.5 transition-all"
-          >
-            Start Giving Today <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </section>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 mt-8">
+        <section className="py-24 bg-setu-950 relative overflow-hidden rounded-[28px]">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(34,160,91,0.15) 0%, transparent 70%)",
+            }}
+          />
+          <div className="relative max-w-2xl mx-auto text-center px-6">
+            <h2
+              className="text-[clamp(32px,4vw,52px)] font-bold text-white leading-[1.07] tracking-[-1px] mb-5"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Be Part of the
+              <br />
+              <em className="italic text-setu-400">Bridge.</em>
+            </h2>
+            <p className="text-[16px] text-white/45 mb-10 leading-[1.75]">
+              Every donation, every campaign, every share builds a stronger Nepal.
+            </p>
+            <Link
+              href="/campaigns"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-setu-500 hover:bg-setu-400 text-white text-[15px] font-bold rounded-full no-underline shadow-[0_8px_28px_rgba(34,160,91,0.4)] hover:-translate-y-0.5 transition-all"
+            >
+              Start Giving Today <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

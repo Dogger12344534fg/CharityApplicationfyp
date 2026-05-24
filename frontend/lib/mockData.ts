@@ -622,3 +622,124 @@ export const mockHallOfFame: DonorHall[] = [
 		badge: "bronze",
 	},
 ];
+4// Team types
+export interface Team {
+  id: string
+  name: string
+  description: string
+  creator: {
+    name: string
+    email: string
+  }
+  location: string
+  privacy: 'public' | 'private'
+  goalAmount: number
+  status: 'pending' | 'active' | 'suspended' | 'rejected'
+  reason?: string
+  createdDate: string
+  avatar?: string
+}
+
+// Mock teams
+export const mockTeams: Team[] = [
+  {
+    id: 'team-1',
+    name: 'Flood Relief Kathmandu',
+    description: 'Coordinating relief efforts for flood-affected families in Kathmandu Valley',
+    creator: {
+      name: 'Anoop Sharma',
+      email: 'anoop@reliefteam.com',
+    },
+    location: 'Kathmandu, Nepal',
+    privacy: 'public',
+    goalAmount: 500000,
+    status: 'active',
+    createdDate: '2024-02-15',
+  },
+  {
+    id: 'team-2',
+    name: 'Mountain Village Support',
+    description: 'Supporting isolated mountain communities affected by landslides',
+    creator: {
+      name: 'Priya Thapa',
+      email: 'priya@mountainrelief.org',
+    },
+    location: 'Pokhara, Nepal',
+    privacy: 'public',
+    goalAmount: 300000,
+    status: 'pending',
+    createdDate: '2024-03-12',
+  },
+  {
+    id: 'team-3',
+    name: 'Emergency Medical Care',
+    description: 'Providing emergency medical services and medical supplies to affected regions',
+    creator: {
+      name: 'Dr. Rajesh Pant',
+      email: 'rajesh.pant@medical.org',
+    },
+    location: 'Bhaktapur, Nepal',
+    privacy: 'public',
+    goalAmount: 750000,
+    status: 'pending',
+    createdDate: '2024-03-10',
+  },
+  {
+    id: 'team-4',
+    name: 'Education Support Initiative',
+    description: 'Rebuilding schools and providing educational materials to affected children',
+    creator: {
+      name: 'Neha Subedi',
+      email: 'neha@edurelief.net',
+    },
+    location: 'Panauti, Nepal',
+    privacy: 'private',
+    goalAmount: 400000,
+    status: 'suspended',
+    reason: 'Duplicate team - Similar initiative already active',
+    createdDate: '2024-02-28',
+  },
+  {
+    id: 'team-5',
+    name: 'Quick Aid Response Team',
+    description: 'Rapid response team for immediate relief distribution',
+    creator: {
+      name: 'Vikram Singh',
+      email: 'vikram@quickaid.org',
+    },
+    location: 'Lalitpur, Nepal',
+    privacy: 'public',
+    goalAmount: 250000,
+    status: 'rejected',
+    reason: 'Insufficient organizational details and no clear mandate',
+    createdDate: '2024-03-08',
+  },
+  {
+    id: 'team-6',
+    name: 'Food Distribution Network',
+    description: 'Organized food distribution to families in affected areas',
+    creator: {
+      name: 'Deepa Maharjan',
+      email: 'deepa@foodnet.org',
+    },
+    location: 'Bhaktapur, Nepal',
+    privacy: 'public',
+    goalAmount: 200000,
+    status: 'active',
+    createdDate: '2024-02-20',
+  },
+  {
+    id: 'team-7',
+    name: 'Clean Water Initiative',
+    description: 'Ensuring access to clean drinking water in affected areas',
+    creator: {
+      name: 'Arun Joshi',
+      email: 'arun@waterrelief.com',
+    },
+    location: 'Dhulikhel, Nepal',
+    privacy: 'public',
+    goalAmount: 350000,
+    status: 'pending',
+    createdDate: '2024-03-11',
+  },
+]

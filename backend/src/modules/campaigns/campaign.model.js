@@ -43,6 +43,38 @@ const campaignSchema = new mongoose.Schema(
       required: true,
     },
 
+    // ── Verification Documents ────────────────────────────────
+    // Wada registration papers, NGO certificates, etc.
+    documents: [
+      {
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
+        name: { type: String, default: "Document" },
+        type: {
+          type: String,
+          enum: [
+            "wada_registration",
+            "ngo_certificate",
+            "tax_clearance",
+            "bank_details",
+            "identity",
+            "other",
+          ],
+          default: "other",
+        },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // ── Reaction counts (denormalized for fast reads) ──────────
+    reactions: {
+      love: { type: Number, default: 0 },
+      support: { type: Number, default: 0 },
+      sad: { type: Number, default: 0 },
+      grateful: { type: Number, default: 0 },
+      urgent: { type: Number, default: 0 },
+    },
+
     urgent: {
       type: Boolean,
       default: false,
@@ -52,7 +84,7 @@ const campaignSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Location",
       required: true,
-    },      
+    },
 
     startDate: {
       type: Date,
@@ -65,13 +97,7 @@ const campaignSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: [
-        "pending",
-        "active",
-        "completed",
-        "rejected",
-        "suspended",
-      ],
+      enum: ["pending", "active", "completed", "rejected", "suspended"],
       default: "pending",
     },
 
@@ -97,8 +123,34 @@ const campaignSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    // ── Payout Details (admin-only, for sending raised funds) ─────
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    esewaId: {
+      type: String,
+      trim: true,
+    },
+
+    // ── Goods Donations Tracking ──────────────────────────────
+    goodsDonations: {
+      totalValue: {
+        type: Number,
+        default: 0,
+      },
+      totalItems: {
+        type: Number,
+        default: 0,
+      },
+      donationsCount: {
+        type: Number,
+        default: 0,
+      },
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Campaign", campaignSchema);

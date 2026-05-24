@@ -1,6 +1,3 @@
-// ═══════════════════════════════════════════════
-// HELP CENTER PAGE — app/(main)/help/page.tsx
-// ═══════════════════════════════════════════════
 "use client";
 import { useState } from "react";
 import Link from "next/link";
@@ -18,82 +15,33 @@ import {
   Zap,
 } from "lucide-react";
 
-const categories = [
-  {
-    icon: Heart,
-    title: "Donating",
-    count: 14,
-    color: "text-red-600",
-    bg: "bg-red-50",
-    href: "/help/donating",
-  },
-  {
-    icon: Zap,
-    title: "Campaigns",
-    count: 18,
-    color: "text-orange-600",
-    bg: "bg-orange-50",
-    href: "/help/campaigns",
-  },
-  {
-    icon: Package,
-    title: "Goods Donation",
-    count: 9,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    href: "/help/goods",
-  },
-  {
-    icon: CreditCard,
-    title: "Payments & Refunds",
-    count: 12,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    href: "/help/payments",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Safety & Trust",
-    count: 8,
-    color: "text-setu-600",
-    bg: "bg-setu-50",
-    href: "/help/safety",
-  },
-  {
-    icon: Users,
-    title: "Account & Profile",
-    count: 11,
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-    href: "/help/account",
-  },
-];
 
 const popular = [
-  { q: "How do I start a campaign on Setu?", href: "/help/start-campaign" },
+  { q: "How do I start a campaign on Setu?", a: "To start a campaign, navigate to your dashboard and click on 'Create Campaign'. Follow the step-by-step guide to fill in your campaign details, upload necessary documents, and submit it for verification." },
   {
     q: "How long does campaign verification take?",
-    href: "/help/verification",
+    a: "Campaign verification typically takes between 24 to 48 hours. Our Trust & Safety team carefully reviews your submitted documents to ensure the legitimacy of the cause.",
   },
-  { q: "Can I get a refund on my donation?", href: "/help/refunds" },
+  { q: "Can I get a refund on my donation?", a: "Refunds can be requested within 7 days of your donation, provided the funds have not already been disbursed to the campaign creator. Please contact support with your transaction ID." },
   {
     q: "How do I donate goods instead of money?",
-    href: "/help/goods-donation",
+    a: "You can donate goods by navigating to the 'Goods Donation' section from the top menu. You can choose to drop off your items at our Setu Foundation Hub or request a pickup if you're in the Kathmandu valley.",
   },
   {
     q: "How are funds disbursed to campaign creators?",
-    href: "/help/disbursement",
+    a: "Funds are securely disbursed directly to the verified account of the campaign creator or the registered NGO. Disbursements can be requested once the campaign hits its initial goal or its end date.",
   },
-  { q: "Is eSewa and Khalti supported?", href: "/help/payment-methods" },
+  { q: "Is eSewa supported?", a: "Yes, we fully support local payment gateways including eSewa." },
   {
     q: "How do I verify my identity for a campaign?",
-    href: "/help/id-verification",
+    a: "During campaign creation, you'll be prompted to upload a government-issued ID (Citizenship, Passport, or License).",
   },
-  { q: "Can I donate from outside Nepal?", href: "/help/international" },
+  { q: "Can I donate from outside Nepal?", a: "Currently, Setu primarily supports domestic payment methods. We are actively working on integrating international payment gateways in the near future." },
 ];
 
 export function HelpPage() {
   const [query, setQuery] = useState("");
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   return (
     <div
       className="bg-cream min-h-screen"
@@ -118,52 +66,11 @@ export function HelpPage() {
           <p className="text-[16px] text-white/50 mb-8">
             Search our help center or browse by topic.
           </p>
-          <div className="relative max-w-xl mx-auto">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-setu-400" />
-            <input
-              type="text"
-              placeholder="Search for answers..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-14 pr-5 py-4 bg-white border-2 border-transparent focus:border-setu-400 rounded-full text-[15px] text-setu-900 placeholder:text-setu-400 focus:outline-none focus:ring-2 focus:ring-setu-500/20 shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all"
-            />
-          </div>
         </div>
       </section>
 
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Categories */}
-          <h2
-            className="text-[20px] font-bold text-setu-950 mb-6"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Browse by Topic
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
-            {categories.map(({ icon: Icon, title, count, color, bg, href }) => (
-              <Link
-                key={title}
-                href={href}
-                className="group flex flex-col items-center gap-3 p-5 bg-white rounded-2xl border border-setu-100 hover:border-setu-300 hover:shadow-[0_6px_20px_rgba(21,104,57,0.1)] hover:-translate-y-1 transition-all duration-200 no-underline text-center"
-              >
-                <div
-                  className={`w-12 h-12 ${bg} rounded-xl flex items-center justify-center`}
-                >
-                  <Icon className={`w-6 h-6 ${color}`} />
-                </div>
-                <div>
-                  <p className="text-[13px] font-bold text-setu-950 group-hover:text-setu-700 transition-colors">
-                    {title}
-                  </p>
-                  <p className="text-[11px] text-setu-600/55">
-                    {count} articles
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-
           <div className="grid lg:grid-cols-[1fr_360px] gap-10">
             {/* Popular */}
             <div>
@@ -174,21 +81,35 @@ export function HelpPage() {
                 Popular Questions
               </h2>
               <div className="space-y-2">
-                {popular.map(({ q, href }) => (
-                  <Link
-                    key={q}
-                    href={href}
-                    className="group flex items-center gap-4 p-4 bg-white rounded-xl border border-setu-100 hover:border-setu-300 hover:shadow-[0_4px_14px_rgba(21,104,57,0.08)] transition-all no-underline"
-                  >
-                    <div className="w-8 h-8 bg-setu-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-setu-100 transition-colors">
-                      <MessageCircle className="w-4 h-4 text-setu-600" />
+                {popular.map(({ q, a }, idx) => {
+                  const isOpen = openIndex === idx;
+                  return (
+                    <div
+                      key={q}
+                      className={`group flex flex-col p-4 bg-white rounded-xl border transition-all cursor-pointer ${isOpen ? 'border-setu-400 shadow-md' : 'border-setu-100 hover:border-setu-300 hover:shadow-[0_4px_14px_rgba(21,104,57,0.08)]'}`}
+                      onClick={() => setOpenIndex(isOpen ? null : idx)}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isOpen ? 'bg-setu-100' : 'bg-setu-50 group-hover:bg-setu-100'}`}>
+                          <MessageCircle className="w-4 h-4 text-setu-600" />
+                        </div>
+                        <span className={`flex-1 text-[14px] font-medium transition-colors ${isOpen ? 'text-setu-900' : 'text-setu-800 group-hover:text-setu-700'}`}>
+                          {q}
+                        </span>
+                        <div className={`transform transition-transform duration-200 ${isOpen ? 'rotate-90 text-setu-500' : 'text-setu-300'}`}>
+                          <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                        </div>
+                      </div>
+                      <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] mt-4 opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                          <p className="pl-12 pr-4 text-[13px] leading-relaxed text-setu-600/90 pb-2">
+                            {a}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <span className="flex-1 text-[14px] font-medium text-setu-800 group-hover:text-setu-700 transition-colors">
-                      {q}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-setu-300 flex-shrink-0" />
-                  </Link>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -202,28 +123,20 @@ export function HelpPage() {
               </h2>
               {[
                 {
-                  icon: MessageCircle,
-                  title: "Live Chat",
-                  sub: "Usually replies in 5 minutes",
-                  cta: "Start Chat",
-                  href: "#",
-                  available: true,
-                },
-                {
                   icon: Mail,
                   title: "Email Support",
                   sub: "We reply within 24 hours",
                   cta: "Send Email",
-                  href: "mailto:hello@setu.np",
+                  href: "mailto:dipendraroka947@gmail.com",
                   available: true,
                 },
                 {
                   icon: Phone,
                   title: "Phone Support",
                   sub: "Mon–Fri, 9am–5pm NPT",
-                  cta: "+977 01-000-0000",
-                  href: "tel:+97701000000",
-                  available: false,
+                  cta: "+977 9816404196",
+                  href: "tel:+9779816404196",
+                  available: true,
                 },
               ].map(({ icon: Icon, title, sub, cta, href, available }) => (
                 <a

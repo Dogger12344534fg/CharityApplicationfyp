@@ -1,17 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { Loader2, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  useGetSettings,
+  useUpdateOrganization,
+  useChangePassword,
+  useDeleteAccount,
+  type OrganizationSettings,
+  type NotificationSettings,
+  type SecuritySettings,
+  type DisplaySettings,
+  type PrivacySettings,
+} from '@/src/hooks/useSettings';
 
 export default function SettingsPage() {
-  const [generalSettings, setGeneralSettings] = useState({
-    organizationName: 'Disaster Relief Organization',
-    email: 'contact@disasterrelief.org',
-    phone: '+977-1-4123456',
-    website: 'www.disasterrelief.org',
-    address: 'Kathmandu, Nepal',
+  const { data: settingsData, isLoading, isError } = useGetSettings();
+  const updateOrganizationMutation = useUpdateOrganization();
+  const changePasswordMutation = useChangePassword();
+  const deleteAccountMutation = useDeleteAccount();
+
+  const [generalSettings, setGeneralSettings] = useState<OrganizationSettings>({
+    name: '',
+    email: '',
+    phone: '',
+    website: '',
+    address: '',
   });
 
-  const [notificationSettings, setNotificationSettings] = useState({
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     emailNotifications: true,
     smsAlerts: true,
     newCampaigns: true,
@@ -19,21 +37,54 @@ export default function SettingsPage() {
     systemUpdates: false,
   });
 
-  const [securitySettings, setSecuritySettings] = useState({
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     twoFactorAuth: false,
-    sessionTimeout: '30',
+    sessionTimeout: 30,
     passwordChangeRequired: false,
   });
 
-  const [displaySettings, setDisplaySettings] = useState({
+  const [displaySettings, setDisplaySettings] = useState<DisplaySettings>({
     theme: 'light',
     language: 'en',
     dateFormat: 'MM/DD/YYYY',
   });
 
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
+    profileVisibility: 'public',
+    showDonationHistory: true,
+    showEmail: false,
+    showPhone: false,
+  });
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Load settings from API
+  useEffect(() => {
+    if (settingsData?.data) {
+      const settings = settingsData.data;
+      
+      // Use organization settings if available, otherwise fall back to user profile data
+      setGeneralSettings({
+        name: settings.organization.name || settings.user.name || '',
+        email: settings.organization.email || settings.user.email || '',
+        phone: settings.organization.phone || settings.user.phone || '',
+        website: settings.organization.website || '',
+        address: settings.organization.address || '',
+      });
+      
+      setNotificationSettings(settings.notifications);
+      setSecuritySettings({
+        twoFactorAuth: settings.security.twoFactorAuth,
+        sessionTimeout: settings.security.sessionTimeout,
+        passwordChangeRequired: settings.security.passwordChangeRequired,
+      });
+      setDisplaySettings(settings.display);
+      setPrivacySettings(settings.privacy);
+    }
+  }, [settingsData]);
 
   const handleGeneralChange = (field: string, value: string) => {
     setGeneralSettings((prev) => ({
@@ -42,37 +93,81 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleNotificationChange = (field: string, value: boolean) => {
-    setNotificationSettings((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSecurityChange = (field: string, value: any) => {
-    setSecuritySettings((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleDisplayChange = (field: string, value: string) => {
-    setDisplaySettings((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleSaveGeneral = () => {
+    updateOrganizationMutation.mutate(generalSettings, {
+      onSuccess: () => {
+        toast.success('General settings saved successfully');
+      },
+      onError: (error: any) => {
+        toast.error(error.response?.data?.message || 'Failed to save settings');
+      },
+    });
   };
 
   const handleSavePassword = () => {
-    if (newPassword !== confirmPassword) {
-      alert('Passwords do not match!');
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Please fill in all password fields');
       return;
     }
-    console.log('Password changed');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
+    changePasswordMutation.mutate(
+      { currentPassword, newPassword },
+      {
+        onSuccess: () => {
+          toast.success('Password changed successfully');
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        },
+        onError: (error: any) => {
+          toast.error(error.response?.data?.message || 'Failed to change password');
+        },
+      }
+    );
   };
+
+  const handleDeleteAccount = () => {
+    deleteAccountMutation.mutate(undefined, {
+      onSuccess: () => {
+        toast.success('Account deleted successfully');
+        // Redirect to login or home page
+        window.location.href = '/login';
+      },
+      onError: (error: any) => {
+        toast.error(error.response?.data?.message || 'Failed to delete account');
+      },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-setu-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-setu-900 mb-2">Failed to load settings</h3>
+          <p className="text-setu-600">Please try refreshing the page</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-8">
@@ -91,8 +186,9 @@ export default function SettingsPage() {
               <label className="block text-sm font-semibold text-setu-900 mb-2">Organization Name</label>
               <input
                 type="text"
-                value={generalSettings.organizationName}
-                onChange={(e) => handleGeneralChange('organizationName', e.target.value)}
+                value={generalSettings.name}
+                onChange={(e) => handleGeneralChange('name', e.target.value)}
+                placeholder={settingsData?.data?.user?.name || "Enter organization name"}
                 className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
               />
             </div>
@@ -102,6 +198,7 @@ export default function SettingsPage() {
                 type="email"
                 value={generalSettings.email}
                 onChange={(e) => handleGeneralChange('email', e.target.value)}
+                placeholder={settingsData?.data?.user?.email || "Enter email address"}
                 className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
               />
             </div>
@@ -113,6 +210,7 @@ export default function SettingsPage() {
                 type="tel"
                 value={generalSettings.phone}
                 onChange={(e) => handleGeneralChange('phone', e.target.value)}
+                placeholder={settingsData?.data?.user?.phone || "Enter phone number"}
                 className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
               />
             </div>
@@ -122,6 +220,7 @@ export default function SettingsPage() {
                 type="text"
                 value={generalSettings.website}
                 onChange={(e) => handleGeneralChange('website', e.target.value)}
+                placeholder="Enter website URL"
                 className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
               />
             </div>
@@ -132,154 +231,27 @@ export default function SettingsPage() {
               type="text"
               value={generalSettings.address}
               onChange={(e) => handleGeneralChange('address', e.target.value)}
+              placeholder="Enter organization address"
               className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
             />
           </div>
           <div className="flex justify-end pt-4 border-t border-setu-200">
-            <button className="px-6 py-2 bg-setu-600 text-white rounded-lg font-semibold hover:bg-setu-700 transition-colors">
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Display Settings */}
-      <div className="bg-white border border-setu-200 rounded-xl p-6 card-lift">
-        <h2 className="text-2xl font-bold text-setu-950 mb-6">Display Settings</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-setu-900 mb-2">Theme</label>
-              <select
-                value={displaySettings.theme}
-                onChange={(e) => handleDisplayChange('theme', e.target.value)}
-                className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
-              >
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="auto">Auto</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-setu-900 mb-2">Language</label>
-              <select
-                value={displaySettings.language}
-                onChange={(e) => handleDisplayChange('language', e.target.value)}
-                className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
-              >
-                <option value="en">English</option>
-                <option value="ne">Nepali</option>
-                <option value="es">Spanish</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-setu-900 mb-2">Date Format</label>
-              <select
-                value={displaySettings.dateFormat}
-                onChange={(e) => handleDisplayChange('dateFormat', e.target.value)}
-                className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
-              >
-                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end pt-4 border-t border-setu-200">
-            <button className="px-6 py-2 bg-setu-600 text-white rounded-lg font-semibold hover:bg-setu-700 transition-colors">
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Notification Settings */}
-      <div className="bg-white border border-setu-200 rounded-xl p-6 card-lift">
-        <h2 className="text-2xl font-bold text-setu-950 mb-6">Notification Settings</h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-setu-200">
-            <div>
-              <p className="font-semibold text-setu-900">Email Notifications</p>
-              <p className="text-sm text-setu-600">Receive notifications via email</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={notificationSettings.emailNotifications}
-                onChange={(e) => handleNotificationChange('emailNotifications', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-setu-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-setu-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-setu-600"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-setu-200">
-            <div>
-              <p className="font-semibold text-setu-900">SMS Alerts</p>
-              <p className="text-sm text-setu-600">Receive urgent alerts via SMS</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={notificationSettings.smsAlerts}
-                onChange={(e) => handleNotificationChange('smsAlerts', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-setu-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-setu-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-setu-600"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-setu-200">
-            <div>
-              <p className="font-semibold text-setu-900">New Campaign Notifications</p>
-              <p className="text-sm text-setu-600">Get notified when new campaigns are created</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={notificationSettings.newCampaigns}
-                onChange={(e) => handleNotificationChange('newCampaigns', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-setu-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-setu-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-setu-600"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-setu-200">
-            <div>
-              <p className="font-semibold text-setu-900">Donation Alerts</p>
-              <p className="text-sm text-setu-600">Get notified of incoming donations</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={notificationSettings.donationAlerts}
-                onChange={(e) => handleNotificationChange('donationAlerts', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-setu-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-setu-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-setu-600"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="font-semibold text-setu-900">System Updates</p>
-              <p className="text-sm text-setu-600">Get notified about system updates</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={notificationSettings.systemUpdates}
-                onChange={(e) => handleNotificationChange('systemUpdates', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-setu-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-setu-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-setu-600"></div>
-            </label>
-          </div>
-
-          <div className="flex justify-end pt-4 border-t border-setu-200">
-            <button className="px-6 py-2 bg-setu-600 text-white rounded-lg font-semibold hover:bg-setu-700 transition-colors">
-              Save Preferences
+            <button 
+              onClick={handleSaveGeneral}
+              disabled={updateOrganizationMutation.isPending}
+              className="px-6 py-2 bg-setu-600 text-white rounded-lg font-semibold hover:bg-setu-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {updateOrganizationMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -324,49 +296,22 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={handleSavePassword}
-                className="w-full px-6 py-2 bg-setu-600 text-white rounded-lg font-semibold hover:bg-setu-700 transition-colors"
+                disabled={changePasswordMutation.isPending}
+                className="w-full px-6 py-2 bg-setu-600 text-white rounded-lg font-semibold hover:bg-setu-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Change Password
+                {changePasswordMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Changing Password...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Change Password
+                  </>
+                )}
               </button>
             </div>
-          </div>
-
-          <div className="border-t border-setu-200 pt-6">
-            <h3 className="font-semibold text-setu-900 mb-4">Two-Factor Authentication</h3>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-setu-600">Enable two-factor authentication for enhanced security</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={securitySettings.twoFactorAuth}
-                  onChange={(e) => handleSecurityChange('twoFactorAuth', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-setu-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-setu-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-setu-600"></div>
-              </label>
-            </div>
-          </div>
-
-          <div className="border-t border-setu-200 pt-6">
-            <h3 className="font-semibold text-setu-900 mb-4">Session Settings</h3>
-            <div>
-              <label className="block text-sm font-semibold text-setu-900 mb-2">Session Timeout (minutes)</label>
-              <input
-                type="number"
-                value={securitySettings.sessionTimeout}
-                onChange={(e) => handleSecurityChange('sessionTimeout', e.target.value)}
-                className="w-full px-4 py-2 border border-setu-200 rounded-lg input-setu"
-              />
-              <p className="text-xs text-setu-600 mt-2">Automatically log out after this period of inactivity</p>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-4 border-t border-setu-200">
-            <button className="px-6 py-2 bg-setu-600 text-white rounded-lg font-semibold hover:bg-setu-700 transition-colors">
-              Save Security Settings
-            </button>
           </div>
         </div>
       </div>
@@ -376,9 +321,50 @@ export default function SettingsPage() {
         <h2 className="text-2xl font-bold text-red-900 mb-4">Danger Zone</h2>
         <div className="space-y-3">
           <p className="text-sm text-red-800">These actions are irreversible. Please proceed with caution.</p>
-          <button className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors">
-            Delete Organization Account
-          </button>
+          
+          {!showDeleteConfirm ? (
+            <button 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center gap-2"
+            >
+              <AlertCircle className="w-4 h-4" />
+              Delete Account
+            </button>
+          ) : (
+            <div className="bg-white border border-red-300 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-red-900 mb-1">Are you absolutely sure?</h4>
+                  <p className="text-sm text-red-800">
+                    This will permanently delete your account and all associated data. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteAccountMutation.isPending}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {deleteAccountMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Yes, Delete My Account'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

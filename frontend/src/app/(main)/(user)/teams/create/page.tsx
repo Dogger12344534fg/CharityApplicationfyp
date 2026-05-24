@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Users,
@@ -23,7 +24,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
-import { useCreateTeam } from "@/src/hooks/useTeam";
+import { axiosInstance } from "@/src/services/axiosInstance";
+import { useQueryClient } from "@tanstack/react-query";
 
 // ── Step config ──────────────────────────────────────────────
 const STEPS = [
@@ -105,31 +107,27 @@ const districts = [
   "Eastern Nepal",
 ];
 
-const privacyOptions = [
-  {
-    key: "public",
-    label: "Public",
-    desc: "Anyone can view and request to join",
-    icon: Globe,
-  },
-  {
-    key: "private",
-    label: "Private",
-    desc: "Invite-only, hidden from search",
-    icon: ShieldCheck,
-  },
-];
-
 export default function CreateTeamPage() {
   const [step, setStep] = useState(1);
   const [done, setDone] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!done) return;
+    const timer = setTimeout(() => router.push("/teams"), 5000);
+    return () => clearTimeout(timer);
+  }, [done, router]);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  const { mutate: createTeam, isPending: submitting } = useCreateTeam();
+  const handleBlur = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
 
   const [form, setForm] = useState({
     name: "",
@@ -165,13 +163,24 @@ export default function CreateTeamPage() {
   };
 
   const canNext1 =
+    !!avatarFile &&
     form.name.trim().length >= 3 &&
     form.description.trim().length >= 20 &&
     !!form.location;
-  const canNext2 = !!form.category && !!form.goal;
+    
+  const canNext2 = 
+    !!form.category && 
+    !!form.goal && 
+    Number(form.goal) >= 10000 && 
+    Number(form.goal) <= 200000;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+
+    if (!avatarFile) {
+      toast.error("Team photo is required.");
+      setStep(1);
+      return;
+    }
 
     if (!form.category) {
       toast.error("Please select a primary focus category.");
@@ -179,8 +188,15 @@ export default function CreateTeamPage() {
       return;
     }
 
-    if (!form.goal || Number(form.goal) < 10000) {
+    const g = Number(form.goal);
+    if (!form.goal || g < 10000) {
       toast.error("Please set a fundraising goal of at least NPR 10,000.");
+      setStep(2);
+      return;
+    }
+    
+    if (g > 200000) {
+      toast.error("Fundraising goal cannot be more than NPR 2,00,000.");
       setStep(2);
       return;
     }
@@ -190,24 +206,47 @@ export default function CreateTeamPage() {
       .map((e) => e.trim())
       .filter((e) => e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
 
-    createTeam(
-      {
-        name: form.name,
-        description: form.description,
-        location: form.location,
-        privacy: form.privacy as "public" | "private",
-        category: form.category,
-        goalAmount: Number(form.goal),
-        website: form.website || undefined,
-        inviteEmails:
-          validEmails.length > 0 ? JSON.stringify(validEmails) : undefined,
-        avatar: avatarFile ?? undefined,
-      },
-      { onSuccess: () => setDone(true) },
-    );
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("description", form.description);
+      formData.append("location", form.location);
+      formData.append("privacy", form.privacy);
+      formData.append("category", form.category);
+      formData.append("goalAmount", String(form.goal));
+      if (form.website) formData.append("website", form.website);
+      if (validEmails.length > 0) formData.append("inviteEmails", JSON.stringify(validEmails));
+      if (avatarFile) formData.append("avatar", avatarFile);
+
+      await axiosInstance.post("/teams", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      toast.success("Team submitted for admin review.");
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      setDone(true);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to create team.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const progress = step === 1 ? 33 : step === 2 ? 66 : 100;
+
+  const avatarError = touched.avatar && !avatarFile ? "Team photo is required" : "";
+  const nameError = touched.name && form.name.trim().length < 3 ? "Name must be at least 3 characters" : "";
+  const descError = touched.desc && form.description.trim().length < 20 ? "Description must be at least 20 characters" : "";
+  const locationError = touched.location && !form.location ? "Please select a location" : "";
+  const categoryError = touched.category && !form.category ? "Please select a primary focus" : "";
+  
+  let goalError = "";
+  if (touched.goal) {
+    const g = Number(form.goal);
+    if (!form.goal || g < 10000) goalError = "Minimum goal is NPR 10,000";
+    else if (g > 200000) goalError = "Maximum goal is NPR 2,00,000";
+  }
 
   // ── Done screen ──────────────────────────────────────────────
   if (done) {
@@ -229,11 +268,11 @@ export default function CreateTeamPage() {
           >
             <em className="italic text-setu-700">"{form.name}"</em>
             <br />
-            is live 🎉
+            is submitted 🎉
           </h1>
           <p className="text-gray-500 text-sm leading-relaxed mb-8">
-            Your team is ready. Share it with your network and start making
-            collective impact across Nepal.
+            Your team has been submitted and is currently pending admin review.
+            Once approved, it will be live on Setu!
           </p>
           <div className="flex flex-col gap-3">
             <Link
@@ -399,7 +438,7 @@ export default function CreateTeamPage() {
 
             {/* ── RIGHT ── */}
             <div className="flex-1">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={(e) => e.preventDefault()}>
                 <div className="bg-white rounded-3xl border border-setu-100 shadow-[0_2px_16px_rgba(21,104,57,0.07)] overflow-hidden">
                   {/* Step header */}
                   <div className="px-8 py-6 border-b border-setu-50 bg-setu-50/50">
@@ -425,10 +464,7 @@ export default function CreateTeamPage() {
                         {/* Avatar upload */}
                         <div>
                           <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-3">
-                            Team Photo{" "}
-                            <span className="text-gray-400 normal-case font-normal tracking-normal">
-                              (optional)
-                            </span>
+                            Team Photo <span className="text-red-400">*</span>
                           </label>
                           <input
                             ref={fileRef}
@@ -459,11 +495,14 @@ export default function CreateTeamPage() {
                             ) : (
                               <button
                                 type="button"
-                                onClick={() => fileRef.current?.click()}
-                                className="w-20 h-20 rounded-2xl bg-setu-50 border-2 border-dashed border-setu-200 flex flex-col items-center justify-center flex-shrink-0 hover:border-setu-400 hover:bg-setu-100 transition-all cursor-pointer group border-none"
+                                onClick={() => {
+                                  handleBlur("avatar");
+                                  fileRef.current?.click();
+                                }}
+                                className={`w-20 h-20 rounded-2xl bg-setu-50 border-2 border-dashed ${avatarError ? "border-red-400 bg-red-50" : "border-setu-200 hover:border-setu-400 hover:bg-setu-100"} flex flex-col items-center justify-center flex-shrink-0 transition-all cursor-pointer group border-none`}
                               >
-                                <Camera className="w-6 h-6 text-setu-400 group-hover:text-setu-600 transition-colors" />
-                                <span className="text-[10px] text-setu-400 font-medium mt-1">
+                                <Camera className={`w-6 h-6 transition-colors ${avatarError ? "text-red-400" : "text-setu-400 group-hover:text-setu-600"}`} />
+                                <span className={`text-[10px] font-medium mt-1 ${avatarError ? "text-red-400" : "text-setu-400"}`}>
                                   Upload
                                 </span>
                               </button>
@@ -477,6 +516,7 @@ export default function CreateTeamPage() {
                               </p>
                             </div>
                           </div>
+                          {avatarError && <p className="text-[11px] text-red-500 mt-2">{avatarError}</p>}
                         </div>
 
                         {/* Team name */}
@@ -488,7 +528,7 @@ export default function CreateTeamPage() {
                             className={`relative rounded-xl transition-all duration-200 ${focused === "name" ? "ring-2 ring-setu-500/30" : ""}`}
                           >
                             <Users
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${focused === "name" ? "text-setu-600" : "text-gray-400"}`}
+                              className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${nameError ? "text-red-400" : focused === "name" ? "text-setu-600" : "text-gray-400"}`}
                             />
                             <input
                               type="text"
@@ -496,15 +536,15 @@ export default function CreateTeamPage() {
                               value={form.name}
                               onChange={(e) => set("name", e.target.value)}
                               onFocus={() => setFocused("name")}
-                              onBlur={() => setFocused(null)}
+                              onBlur={() => { setFocused(null); handleBlur("name"); }}
                               placeholder="e.g. Kathmandu Cares Collective"
                               maxLength={60}
-                              className="w-full pl-11 pr-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors"
+                              className={`w-full pl-11 pr-4 py-3.5 bg-white border ${nameError ? "border-red-400 bg-red-50/30" : "border-setu-200"} rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors`}
                             />
                           </div>
                           <div className="flex justify-between mt-1.5">
-                            <p className="text-[11px] text-gray-400">
-                              Make it memorable and cause-specific
+                            <p className={`text-[11px] ${nameError ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                              {nameError || "Make it memorable and cause-specific"}
                             </p>
                             <p className="text-[11px] text-gray-400">
                               {form.name.length}/60
@@ -523,12 +563,13 @@ export default function CreateTeamPage() {
                             value={form.description}
                             onChange={(e) => set("description", e.target.value)}
                             onFocus={() => setFocused("desc")}
-                            onBlur={() => setFocused(null)}
+                            onBlur={() => { setFocused(null); handleBlur("desc"); }}
                             placeholder="Describe your team's mission, who you are, and what you're working to achieve across Nepal…"
                             rows={4}
                             maxLength={400}
                             className={[
-                              "w-full px-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors resize-none",
+                              "w-full px-4 py-3.5 bg-white border rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors resize-none",
+                              descError ? "border-red-400 bg-red-50/30" : "border-setu-200",
                               focused === "desc"
                                 ? "ring-2 ring-setu-500/30"
                                 : "",
@@ -536,11 +577,11 @@ export default function CreateTeamPage() {
                           />
                           <div className="flex justify-between mt-1.5">
                             <p
-                              className={`text-[11px] ${form.description.length < 20 && form.description.length > 0 ? "text-red-400" : "text-gray-400"}`}
+                              className={`text-[11px] ${descError ? "text-red-500 font-medium" : form.description.length < 20 && form.description.length > 0 ? "text-red-400" : "text-gray-400"}`}
                             >
-                              {form.description.length < 20
+                              {descError || (form.description.length < 20
                                 ? `${20 - form.description.length} more characters needed`
-                                : "Looks good!"}
+                                : "Looks good!")}
                             </p>
                             <p className="text-[11px] text-gray-400">
                               {form.description.length}/400
@@ -557,15 +598,15 @@ export default function CreateTeamPage() {
                             className={`relative rounded-xl transition-all duration-200 ${focused === "location" ? "ring-2 ring-setu-500/30" : ""}`}
                           >
                             <MapPin
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors pointer-events-none ${focused === "location" ? "text-setu-600" : "text-gray-400"}`}
+                              className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors pointer-events-none ${locationError ? "text-red-400" : focused === "location" ? "text-setu-600" : "text-gray-400"}`}
                             />
                             <select
                               required
                               value={form.location}
                               onChange={(e) => set("location", e.target.value)}
                               onFocus={() => setFocused("location")}
-                              onBlur={() => setFocused(null)}
-                              className="w-full pl-11 pr-10 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 focus:outline-none focus:border-setu-500 transition-colors appearance-none cursor-pointer"
+                              onBlur={() => { setFocused(null); handleBlur("location"); }}
+                              className={`w-full pl-11 pr-10 py-3.5 bg-white border ${locationError ? "border-red-400 bg-red-50/30" : "border-setu-200"} rounded-xl text-sm text-setu-950 focus:outline-none focus:border-setu-500 transition-colors appearance-none cursor-pointer`}
                             >
                               <option value="">Select district or zone…</option>
                               {districts.map((d) => (
@@ -573,48 +614,6 @@ export default function CreateTeamPage() {
                               ))}
                             </select>
                             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                          </div>
-                        </div>
-
-                        {/* Privacy */}
-                        <div>
-                          <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-3">
-                            Team Visibility
-                          </label>
-                          <div className="grid grid-cols-2 gap-3">
-                            {privacyOptions.map(
-                              ({ key, label, desc, icon: Icon }) => (
-                                <button
-                                  key={key}
-                                  type="button"
-                                  onClick={() => set("privacy", key)}
-                                  className={[
-                                    "flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all duration-150 cursor-pointer",
-                                    form.privacy === key
-                                      ? "border-setu-500 bg-setu-50"
-                                      : "border-setu-100 bg-white hover:border-setu-300",
-                                  ].join(" ")}
-                                >
-                                  <div
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${form.privacy === key ? "bg-setu-700" : "bg-gray-100"}`}
-                                  >
-                                    <Icon
-                                      className={`w-4 h-4 ${form.privacy === key ? "text-white" : "text-gray-500"}`}
-                                    />
-                                  </div>
-                                  <div>
-                                    <p
-                                      className={`text-[13px] font-bold ${form.privacy === key ? "text-setu-800" : "text-setu-900"}`}
-                                    >
-                                      {label}
-                                    </p>
-                                    <p className="text-[11px] text-gray-400 leading-snug mt-0.5">
-                                      {desc}
-                                    </p>
-                                  </div>
-                                </button>
-                              ),
-                            )}
                           </div>
                         </div>
                       </>
@@ -629,7 +628,7 @@ export default function CreateTeamPage() {
                             Primary Focus{" "}
                             <span className="text-red-400">*</span>
                           </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${categoryError ? "p-2 bg-red-50/50 border border-red-200 rounded-2xl" : ""}`}>
                             {categories.map(
                               ({
                                 key,
@@ -642,7 +641,7 @@ export default function CreateTeamPage() {
                                 <button
                                   key={key}
                                   type="button"
-                                  onClick={() => set("category", key)}
+                                  onClick={() => { set("category", key); handleBlur("category"); }}
                                   className={[
                                     "flex items-center gap-2.5 p-3.5 rounded-xl border-2 text-left transition-all duration-150 cursor-pointer",
                                     form.category === key
@@ -669,6 +668,7 @@ export default function CreateTeamPage() {
                               ),
                             )}
                           </div>
+                          {categoryError && <p className="text-[11px] text-red-500 mt-2">{categoryError}</p>}
                         </div>
 
                         {/* Goal */}
@@ -682,9 +682,9 @@ export default function CreateTeamPage() {
                           >
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
                               <Target
-                                className={`w-4 h-4 transition-colors ${focused === "goal" ? "text-setu-600" : "text-gray-400"}`}
+                                className={`w-4 h-4 transition-colors ${goalError ? "text-red-400" : focused === "goal" ? "text-setu-600" : "text-gray-400"}`}
                               />
-                              <span className="text-[13px] font-bold text-gray-400 border-r border-setu-200 pr-2.5">
+                              <span className={`text-[13px] font-bold border-r pr-2.5 ${goalError ? "text-red-400 border-red-200" : "text-gray-400 border-setu-200"}`}>
                                 NPR
                               </span>
                             </div>
@@ -692,20 +692,21 @@ export default function CreateTeamPage() {
                               type="number"
                               required
                               min={10000}
+                              max={200000}
                               value={form.goal}
                               onChange={(e) => set("goal", e.target.value)}
                               onFocus={() => setFocused("goal")}
-                              onBlur={() => setFocused(null)}
-                              placeholder="e.g. 500000"
-                              className="w-full pl-24 pr-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors"
+                              onBlur={() => { setFocused(null); handleBlur("goal"); }}
+                              placeholder="e.g. 50000"
+                              className={`w-full pl-24 pr-4 py-3.5 bg-white border ${goalError ? "border-red-400 bg-red-50/30 text-red-900" : "border-setu-200 text-setu-950"} rounded-xl text-sm placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors`}
                             />
                           </div>
                           <div className="flex gap-2 flex-wrap mt-3">
-                            {[50000, 100000, 250000, 500000].map((amt) => (
+                            {[50000, 100000, 150000, 200000].map((amt) => (
                               <button
                                 key={amt}
                                 type="button"
-                                onClick={() => set("goal", String(amt))}
+                                onClick={() => { set("goal", String(amt)); handleBlur("goal"); }}
                                 className={[
                                   "px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all duration-150 cursor-pointer",
                                   form.goal === String(amt)
@@ -719,35 +720,9 @@ export default function CreateTeamPage() {
                               </button>
                             ))}
                           </div>
-                          <p className="text-[11px] text-gray-400 mt-2">
-                            Minimum NPR 10,000. You can update this later.
+                          <p className={`text-[11px] mt-2 ${goalError ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                            {goalError || "Minimum NPR 10,000 and Maximum NPR 2,00,000."}
                           </p>
-                        </div>
-
-                        {/* Website */}
-                        <div>
-                          <label className="block text-xs font-bold text-setu-800 uppercase tracking-[0.1em] mb-2">
-                            Team Website{" "}
-                            <span className="text-gray-400 normal-case font-normal tracking-normal">
-                              (optional)
-                            </span>
-                          </label>
-                          <div
-                            className={`relative rounded-xl transition-all duration-200 ${focused === "website" ? "ring-2 ring-setu-500/30" : ""}`}
-                          >
-                            <Globe
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${focused === "website" ? "text-setu-600" : "text-gray-400"}`}
-                            />
-                            <input
-                              type="url"
-                              value={form.website}
-                              onChange={(e) => set("website", e.target.value)}
-                              onFocus={() => setFocused("website")}
-                              onBlur={() => setFocused(null)}
-                              placeholder="https://yourteam.org"
-                              className="w-full pl-11 pr-4 py-3.5 bg-white border border-setu-200 rounded-xl text-sm text-setu-950 placeholder-gray-300 focus:outline-none focus:border-setu-500 transition-colors"
-                            />
-                          </div>
                         </div>
 
                         {/* Preview */}
@@ -935,7 +910,8 @@ export default function CreateTeamPage() {
                       </button>
                     ) : (
                       <button
-                        type="submit"
+                        type="button"
+                        onClick={handleSubmit}
                         disabled={submitting}
                         className="flex items-center gap-2 px-7 py-3 bg-setu-700 hover:bg-setu-600 disabled:bg-setu-300 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-[0_4px_12px_rgba(21,104,57,0.3)] hover:-translate-y-0.5 disabled:cursor-not-allowed cursor-pointer border-none"
                       >

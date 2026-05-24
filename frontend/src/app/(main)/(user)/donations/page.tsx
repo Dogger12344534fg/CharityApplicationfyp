@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   ArrowRight,
@@ -9,8 +11,12 @@ import {
   Zap,
   CreditCard,
 } from "lucide-react";
+import { usePublicStats, formatNPR, formatCount } from "@/src/hooks/usePublicStats";
 
 export default function DonatePage() {
+  const { data: statsData } = usePublicStats();
+  const ps = statsData?.data;
+
   return (
     <div className="bg-[#f5f7f4] text-setu-950 min-h-screen">
       {/* ── Hero ── */}
@@ -47,9 +53,9 @@ export default function DonatePage() {
       <section className="max-w-7xl mx-auto px-4 -mt-6 mb-12 relative z-10">
         <div className="grid grid-cols-3 gap-3">
           {[
-            { num: "NPR 4.2Cr+", label: "Total donated" },
-            { num: "18,400+", label: "Donors" },
-            { num: "4,800+", label: "Goods packages sent" },
+            { num: ps ? formatNPR(ps.totalRaised) : "...", label: "Total donated" },
+            { num: ps ? formatCount(ps.totalDonors) : "...", label: "Donors" },
+            { num: ps ? formatCount(ps.goodsPackages) : "...", label: "Goods packages sent" },
           ].map(({ num, label }) => (
             <div
               key={label}
