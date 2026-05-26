@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Heart } from "lucide-react";
 
-export default function AuthCallbackPage() {
+function AuthCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -52,5 +52,13 @@ export default function AuthCallbackPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense>
+      <AuthCallbackInner />
+    </Suspense>
   );
 }

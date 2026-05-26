@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import {
@@ -56,7 +56,7 @@ const fmtNPR = (n: number) =>
 const ESEWA_QR_DATA = "https://esewa.com.np";
 const QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(ESEWA_QR_DATA)}&bgcolor=ffffff&color=1a1a1a&margin=8&format=png`;
 
-export default function DonatePage() {
+function DonatePageInner() {
   const params = useParams();
   const id = params?.id as string;
   const searchParams = useSearchParams();
@@ -756,5 +756,13 @@ export default function DonatePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DonatePage() {
+  return (
+    <Suspense>
+      <DonatePageInner />
+    </Suspense>
   );
 }

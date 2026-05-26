@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import {
   useGetLeaderboard,
-  type Donor,
-  type TeamEntry,
+  type HallOfFameDonor as Donor,
+  type HallOfFameTeam as TeamEntry,
 } from "@/src/hooks/useHallOfFame";
 
 const fmtNPR = (n: number) =>

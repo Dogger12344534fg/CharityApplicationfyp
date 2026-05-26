@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -18,7 +18,7 @@ import {
 import { Toaster, toast } from "sonner";
 import useLogin from "@/src/hooks/useLogin";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get("next") ?? "";
 
@@ -454,5 +454,13 @@ function SetuLogo({ size = 44 }: { size?: number }) {
         strokeLinecap="round"
       />
     </svg>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
   );
 }

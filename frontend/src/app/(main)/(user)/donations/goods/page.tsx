@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -65,7 +65,7 @@ const colorMap: Record<string, { bg: string; light: string; text: string; border
 };
 
 // ── Status badge helper ───────────────────────────────────────
-export const goodsStatusMap: Record<string, { label: string; color: string; dot: string }> = {
+const goodsStatusMap: Record<string, { label: string; color: string; dot: string }> = {
   pending: { label: "Pending Review", color: "text-amber-700 bg-amber-50 border-amber-200", dot: "bg-amber-400" },
   verified: { label: "Verified", color: "text-setu-700 bg-setu-50 border-setu-200", dot: "bg-setu-500" },
   scheduled: { label: "Scheduled", color: "text-blue-700 bg-blue-50 border-blue-200", dot: "bg-blue-500" },
@@ -77,7 +77,7 @@ export const goodsStatusMap: Record<string, { label: string; color: string; dot:
 };
 
 // ─────────────────────────────────────────────────────────────
-export default function GoodsDonationPage() {
+function GoodsDonationPageInner() {
   const searchParams = useSearchParams();
   const prefilledCampaignId = searchParams.get("campaign") ?? "";
 
@@ -506,5 +506,13 @@ export default function GoodsDonationPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function GoodsDonationPage() {
+  return (
+    <Suspense>
+      <GoodsDonationPageInner />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import {
@@ -15,7 +15,7 @@ import { useVerifyEsewaPayment } from "@/src/hooks/usePayment";
 const fmtNPR = (n: number) =>
   n >= 100000 ? `NPR ${(n / 100000).toFixed(1)}L` : `NPR ${n.toLocaleString()}`;
 
-export default function DonateSuccessPage() {
+function DonateSuccessPageInner() {
   const params = useParams();
   const searchParams = useSearchParams();
   const id = params?.id as string;
@@ -161,5 +161,13 @@ export default function DonateSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DonateSuccessPage() {
+  return (
+    <Suspense>
+      <DonateSuccessPageInner />
+    </Suspense>
   );
 }

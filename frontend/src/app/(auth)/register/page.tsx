@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -113,7 +113,7 @@ function FieldError({ message }: { message: string }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function RegisterPage() {
+function RegisterPageInner() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("inviteToken") ?? "";
   const inviteEmail = searchParams.get("email") ?? "";
@@ -1073,5 +1073,13 @@ function SetuLogo({ size = 44 }: { size?: number }) {
         strokeLinecap="round"
       />
     </svg>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterPageInner />
+    </Suspense>
   );
 }

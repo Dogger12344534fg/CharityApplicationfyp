@@ -218,7 +218,7 @@ function TermsIllustration() {
   );
 }
 
-export function TermsPage() {
+function TermsPage() {
   return (
     <div
       className="bg-cream min-h-screen"

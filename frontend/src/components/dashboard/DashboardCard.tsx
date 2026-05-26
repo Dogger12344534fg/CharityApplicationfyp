@@ -51,7 +51,7 @@ export function DashboardCard({
           )}
         </div>
         <div className={`p-3 rounded-lg ${iconBgClasses[color]} text-xl`}>
-          {typeof icon === 'string' ? icon : <Icon size={24} />}
+          {typeof Icon === 'string' ? Icon : <Icon size={24} />}
         </div>
       </div>
 

@@ -39,7 +39,7 @@ const popular = [
   { q: "Can I donate from outside Nepal?", a: "Currently, Setu primarily supports domestic payment methods. We are actively working on integrating international payment gateways in the near future." },
 ];
 
-export function HelpPage() {
+function HelpPage() {
   const [query, setQuery] = useState("");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   return (

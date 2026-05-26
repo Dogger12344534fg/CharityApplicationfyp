@@ -69,7 +69,7 @@ function ContactIllustration() {
   );
 }
 
-export function ContactPage() {
+function ContactPage() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
@@ -278,7 +278,7 @@ export function ContactPage() {
 
 export default ContactPage;
 
-export function ReportIssuePage() {
+function ReportIssuePage() {
   const [type, setType] = useState("");
   const [url, setUrl] = useState("");
   const [message, setMessage] = useState("");

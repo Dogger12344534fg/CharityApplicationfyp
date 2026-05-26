@@ -4,7 +4,7 @@
 	"main": "index.js",
 	"scripts": {
 		"dev": "nodemon --env-file=.env src/server.js",
-		"start": "node --env-file=.env src/server.js",
+		"start": "node src/server.js",
 		"fix-team-refs": "node --env-file=.env scripts/fix-team-null-references.js"
 	},
 	"keywords": [],

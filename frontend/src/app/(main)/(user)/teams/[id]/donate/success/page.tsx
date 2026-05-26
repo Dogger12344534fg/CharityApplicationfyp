@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import {
@@ -10,7 +11,7 @@ import { useVerifyTeamEsewaPayment } from "@/src/hooks/useTeam";
 const fmtNPR = (n: number) =>
     n >= 100000 ? `NPR ${(n / 100000).toFixed(1)}L` : `NPR ${n.toLocaleString()}`;
 
-export default function TeamDonateSuccessPage() {
+function TeamDonateSuccessPageInner() {
     const params = useParams();
     const searchParams = useSearchParams();
     const id = params?.id as string;
@@ -109,4 +110,12 @@ export default function TeamDonateSuccessPage() {
             </div>
         </div>
     );
+}
+
+export default function TeamDonateSuccessPage() {
+  return (
+    <Suspense>
+      <TeamDonateSuccessPageInner />
+    </Suspense>
+  );
 }

@@ -240,7 +240,7 @@ function PrivacyIllustration() {
   );
 }
 
-export function PrivacyPage() {
+function PrivacyPage() {
   return (
     <div
       className="bg-cream min-h-screen"
