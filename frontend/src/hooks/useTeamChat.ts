@@ -44,7 +44,7 @@ export function useTeamChat(
         if (!token) return;
 
         const socketUrl =
-            process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+            process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:1000";
 
         const socket = io(socketUrl, {
             auth: { token },

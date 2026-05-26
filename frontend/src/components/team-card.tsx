@@ -100,9 +100,13 @@ export function TeamCard({ t }: { t: Team }) {
                 <span className="text-[12px] text-gray-500 font-medium">
                   {t.campaigns} campaign{t.campaigns !== 1 ? "s" : ""}
                 </span>
-                <span className="flex items-center gap-1.5 px-4 py-2 bg-setu-700 text-white text-[12px] font-bold rounded-full">
+
+                <Link
+                  href={`/teams/${t.id}`}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-setu-700 text-white text-[12px] font-bold rounded-full"
+                >
                   View Team <ChevronRight className="w-3.5 h-3.5" />
-                </span>
+                </Link>
               </div>
             </div>
           </div>
