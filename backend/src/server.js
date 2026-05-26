@@ -28,6 +28,8 @@ import { expireOverdueCampaignsService } from "./modules/campaigns/campaign.serv
 import Message from "./modules/teams/message.model.js";
 import Team from "./modules/teams/team.model.js";
 
+import { StatusCodes } from "http-status-codes"
+
 dotenv.config({ quiet: true });
 
 const app = express();
@@ -81,6 +83,9 @@ app.use("/api/profile", profileRoute);
 app.use("/api/settings", settingsRoute);
 app.use("/api/campaigns/:campaignId/comments", commentRoute);
 app.use("/api/campaigns/:campaignId/reactions", reactionRoute);
+app.use("/api", (req, res) => {
+	res.status(StatusCodes.OK).json({ success: true, message: "Setu api running...." });
+});
 
 // Global Error Handler
 app.use((err, req, res, next) => {
