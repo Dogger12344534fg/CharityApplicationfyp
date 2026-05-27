@@ -51,7 +51,7 @@ export const useGetAllTickets = (params?: any) => {
     queryKey: ["support-tickets", params],
     queryFn: async () => {
       const { data } = await axiosInstance.get("/support", { params });
-      return data.data;
+      return data.data.tickets;
     },
   });
 };

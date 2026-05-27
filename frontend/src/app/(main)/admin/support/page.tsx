@@ -6,18 +6,16 @@ import {
   useReplyToTicket, 
   SupportTicket 
 } from "@/src/hooks/useSupport";
-import { 
-  MessageSquare, AlertTriangle, CheckCircle, 
-  Clock, Send, Search, User, Filter
+import {
+  MessageSquare, AlertTriangle, CheckCircle,
+  Clock, Send, User
 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function AdminSupportPage() {
-  const [filterType, setFilterType] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
-  
+
   const { data: tickets, isLoading } = useGetAllTickets({
-    type: filterType || undefined,
     status: filterStatus || undefined,
     limit: 100
   });
@@ -44,33 +42,12 @@ export default function AdminSupportPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-display text-setu-900">Support & Reports</h1>
+          <h1 className="text-2xl font-bold font-display text-setu-900">Support</h1>
           <p className="text-sm text-setu-500 mt-1">Manage user inquiries and platform safety reports.</p>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex bg-white border border-setu-200 rounded-lg p-1 w-full sm:w-auto">
-          <button 
-            onClick={() => setFilterType("")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${!filterType ? "bg-setu-100 text-setu-800" : "text-setu-500 hover:text-setu-700"}`}
-          >
-            All Types
-          </button>
-          <button 
-            onClick={() => setFilterType("contact")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${filterType === "contact" ? "bg-setu-100 text-setu-800" : "text-setu-500 hover:text-setu-700"}`}
-          >
-            Contact
-          </button>
-          <button 
-            onClick={() => setFilterType("report")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${filterType === "report" ? "bg-red-100 text-red-800" : "text-setu-500 hover:text-setu-700"}`}
-          >
-            Reports
-          </button>
-        </div>
-
         <div className="flex bg-white border border-setu-200 rounded-lg p-1 w-full sm:w-auto">
           <button 
             onClick={() => setFilterStatus("")}

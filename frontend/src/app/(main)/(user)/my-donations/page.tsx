@@ -50,6 +50,8 @@ export default function MyDonationsPage() {
   const { data: moneyData, isLoading: moneyLoading, isError: moneyError } =
     useGetMyPayments({ page: moneyPage, limit: LIMIT });
 
+    console.log("Money Donations Data:", moneyData); // Debug log for money donations
+
   const { data: goodsData, isLoading: goodsLoading, isError: goodsError } =
     useGetMyGoodsDonations({ page: goodsPage, limit: LIMIT });
 

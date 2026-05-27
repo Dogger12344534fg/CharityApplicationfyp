@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   BarChart3, AlertCircle, Users, ShoppingCart, Leaf,
   Award, Package, BarChart2, MessageSquare, Megaphone,
@@ -51,6 +52,7 @@ export default function AdminSidebar({
   onMobileClose,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("User");
@@ -122,7 +124,7 @@ export default function AdminSidebar({
         {/* Logout */}
         <div className={`border-t border-setu-600 p-3`}>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowConfirm(true)}
             title={collapsed ? "Logout" : undefined}
             className={`flex items-center gap-3 w-full rounded-lg text-setu-100 hover:bg-setu-600 hover:text-white transition-all duration-200 ${
               collapsed ? "justify-center px-2 py-3" : "px-3 py-2.5"
@@ -185,7 +187,7 @@ export default function AdminSidebar({
 
         <div className="border-t border-setu-600 p-3">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowConfirm(true)}
             className="flex items-center gap-3 w-full px-3 py-2.5 text-setu-100 hover:bg-setu-600 rounded-lg transition-all duration-200"
           >
             <LogOut size={18} />
@@ -200,6 +202,33 @@ export default function AdminSidebar({
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
           onClick={onMobileClose}
         />
+      )}
+
+      {/* Logout confirmation modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogOut size={22} className="text-red-500" />
+            </div>
+            <h3 className="text-[17px] font-bold text-gray-900 text-center mb-1">Sign out?</h3>
+            <p className="text-[13px] text-gray-500 text-center mb-6">You will be redirected to the login page.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-[13px] font-bold transition-colors"
+              >
+                Yes, logout
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

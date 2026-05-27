@@ -907,21 +907,7 @@ export const initiateKhaltiPaymentController = async (req, res) => {
     const totalAmount = Number(amount) + Number(tipAmount);
     const transactionUuid = uuidv4();
 
-    // Save payment record first
-    const payment = await Payment.create({
-      campaign: campaignId || null,
-      team: teamId || null,
-      donor: donorId || null,
-      amount: Number(amount),
-      tipAmount: Number(tipAmount),
-      totalAmount,
-      transactionUuid,
-      gateway: "khalti",     // ← gateway is "khalti" not "esewa"
-      anonymous,
-      status: "initiated",
-    });
-
-    // Call Khalti API
+    // Call Khalti API first — if it fails, no orphaned record is saved
     const khaltiResponse = await initiateKhaltiPayment({
       totalAmount,
       transactionUuid,
@@ -930,15 +916,26 @@ export const initiateKhaltiPaymentController = async (req, res) => {
       productName,
     });
 
-    // Save pidx on the payment so we can verify later
-    payment.gatewayResponse = { pidx: khaltiResponse.pidx };
-    await payment.save();
+    // Only save the payment record once Khalti has confirmed the pidx
+    const payment = await Payment.create({
+      campaign: campaignId || null,
+      team: teamId || null,
+      donor: donorId || null,
+      amount: Number(amount),
+      tipAmount: Number(tipAmount),
+      totalAmount,
+      transactionUuid,
+      gateway: "khalti",
+      anonymous,
+      status: "initiated",
+      gatewayResponse: { pidx: khaltiResponse.pidx },
+    });
 
     return res.status(200).json({
       success: true,
       message: "Khalti payment initiated.",
       paymentId: payment._id,
-      khaltiUrl: khaltiResponse.payment_url,  // ← frontend redirects here
+      khaltiUrl: khaltiResponse.payment_url,
       pidx: khaltiResponse.pidx,
     });
 

@@ -146,6 +146,7 @@ export function Navbar() {
 	const [scrolled, setScrolled] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+	const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
@@ -182,6 +183,7 @@ export function Navbar() {
 		localStorage.removeItem("User");
 		setActiveDropdown(null);
 		setMobileOpen(false);
+		setShowLogoutConfirm(false);
 		router.replace("/");
 	};
 
@@ -428,7 +430,7 @@ export function Navbar() {
 											<div className="mx-2 my-1.5 h-px bg-setu-100" />
 
 											<button
-												onClick={handleLogout}
+												onClick={() => setShowLogoutConfirm(true)}
 												className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 transition-colors group cursor-pointer border-none bg-transparent">
 												<div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 group-hover:bg-red-100 transition-colors">
 													<LogOut className="w-3.5 h-3.5 text-red-500" />
@@ -594,7 +596,7 @@ export function Navbar() {
 									</Link>
 									<div className="mx-2 my-1 h-px bg-setu-100" />
 									<button
-										onClick={handleLogout}
+										onClick={() => setShowLogoutConfirm(true)}
 										className="flex items-center gap-2.5 px-4 py-3 text-[14px] font-semibold text-red-500 hover:bg-red-50 rounded-xl w-full text-left cursor-pointer border-none bg-transparent transition-colors">
 										<LogOut className="w-4 h-4" /> Sign Out
 									</button>
@@ -619,6 +621,33 @@ export function Navbar() {
 					</div>
 				)}
 			</header>
+
+			{/* Logout confirmation modal */}
+			{showLogoutConfirm && (
+				<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+					<div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+						<div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+							<LogOut className="w-5 h-5 text-red-500" />
+						</div>
+						<h3 className="text-[17px] font-bold text-gray-900 text-center mb-1">Sign out?</h3>
+						<p className="text-[13px] text-gray-500 text-center mb-6">You will be redirected to the home page.</p>
+						<div className="flex gap-3">
+							<button
+								onClick={() => setShowLogoutConfirm(false)}
+								className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={handleLogout}
+								className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-[13px] font-bold transition-colors"
+							>
+								Yes, sign out
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</>
 	);
 }
