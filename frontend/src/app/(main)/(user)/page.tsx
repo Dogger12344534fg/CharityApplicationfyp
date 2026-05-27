@@ -607,6 +607,9 @@ export default function HomePage() {
 				</div>
 			</section>
 
+
+			
+
 			{/* ══════════════════════════════════════════
           FEATURED CAMPAIGNS
       ══════════════════════════════════════════ */}

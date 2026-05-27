@@ -21,6 +21,15 @@ import {
   submitEsewaForm,
 } from "@/src/hooks/usePayment";
 
+
+
+
+///this is for khalti payment gateway initiation
+import { useInitiateKhaltiPayment, redirectToKhalti } from "@/src/hooks/usePayment";
+
+
+
+
 const QUICK_AMOUNTS = [
   { value: 500, label: "NPR 500" },
   { value: 1000, label: "NPR 1,000" },
@@ -48,6 +57,21 @@ const PAY_METHODS: {
       color: "#60C153",
       logo: "E",
     },
+
+
+
+
+
+
+
+     // ← THis is for khalti project guys can add more payment gateway in future by following this structure
+  {
+    key: "khalti",
+    label: "Khalti",
+    desc: "Pay with your Khalti wallet",
+    color: "#5C2D91",
+    logo: "K",
+  },
   ];
 
 const fmtNPR = (n: number) =>
@@ -66,6 +90,14 @@ function DonatePageInner() {
   const { mutate: initiatePayment, isPending: initiating } =
     useInitiateEsewaPayment();
 
+
+
+    ///this is the change file for khalti payment gateway initiation
+
+  const { mutate: initiateKhaltiPayment, isPending: initiatingKhalti } = useInitiateKhaltiPayment();
+
+
+    
   // Pre-fill amount passed via ?amount= query param from the campaign detail page
   const QUICK_VALUES = QUICK_AMOUNTS.map((q) => q.value);
   const { initSel, initCustom } = useMemo(() => {
@@ -108,20 +140,28 @@ function DonatePageInner() {
     else if (step === "payment") setStep("confirm");
   };
 
-  const handleDonate = () => {
-    if (payMethod === "esewa") {
-      initiatePayment(
-        { campaignId: id, amount: donationAmt - tipAmt, tipAmount: tipAmt, anonymous },
-        {
-          onSuccess: (data) => {
-            submitEsewaForm(data.esewaUrl, data.esewaPayload);
-          },
+ const handleDonate = () => {
+  if (payMethod === "esewa") {
+    initiatePayment(
+      { campaignId: id, amount: donationAmt - tipAmt, tipAmount: tipAmt, anonymous },
+      {
+        onSuccess: (data) => {
+          submitEsewaForm(data.esewaUrl, data.esewaPayload);
         },
-      );
-    } else {
-      alert("Khalti integration coming soon!");
-    }
-  };
+      },
+    );
+  } else if (payMethod === "khalti") {
+    // ← REPLACE the alert with this
+    initiateKhaltiPayment(
+      { campaignId: id, amount: donationAmt - tipAmt, tipAmount: tipAmt, anonymous },
+      {
+        onSuccess: (data) => {
+          redirectToKhalti(data.khaltiUrl);
+        },
+      },
+    );
+  }
+};
 
   return (
     <div
@@ -428,6 +468,33 @@ function DonatePageInner() {
                     </div>
                   )}
 
+
+
+
+                  ///for khalti payment gateway display in payment method step
+
+                 
+{payMethod === "khalti" && (
+  <div className="border border-purple-100 bg-purple-50 rounded-xl p-4 flex items-start gap-3">
+    <div
+      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[13px] font-black"
+      style={{ backgroundColor: "#5C2D91" }}
+    >
+      K
+    </div>
+    <div>
+      <p className="text-[13px] font-bold text-purple-800">
+        Pay with Khalti
+      </p>
+      <p className="text-[12px] text-purple-700 mt-0.5 leading-relaxed">
+        You'll be redirected to Khalti to complete the payment securely.
+      </p>
+    </div>
+  </div>
+)}
+
+
+
                   <div className="flex gap-3 pt-2">
                     <button
                       onClick={() => setStep("amount")}
@@ -590,10 +657,10 @@ function DonatePageInner() {
                     </button>
                     <button
                       onClick={handleDonate}
-                      disabled={initiating}
+                      disabled={initiating ||  initiatingKhalti}
                       className="flex-[2] py-4 bg-setu-700 hover:bg-setu-600 disabled:bg-setu-400 text-white font-bold rounded-xl text-[15px] transition-all shadow-[0_4px_14px_rgba(21,104,57,0.35)] hover:-translate-y-0.5 disabled:cursor-not-allowed cursor-pointer border-none flex items-center justify-center gap-2"
                     >
-                      {initiating ? (
+                      {initiating || initiatingKhalti ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
                           Redirecting to{" "}

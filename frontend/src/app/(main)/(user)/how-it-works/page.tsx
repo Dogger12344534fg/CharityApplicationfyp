@@ -405,7 +405,7 @@ export default function HowItWorksPage() {
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/register"
+              href="/campaigns/create"
               className="inline-flex items-center gap-2 px-8 py-4 bg-setu-500 hover:bg-setu-400 text-white text-[15px] font-bold rounded-full no-underline shadow-[0_8px_28px_rgba(34,160,91,0.4)] hover:-translate-y-0.5 transition-all"
             >
               Start a Campaign <ArrowRight className="w-4 h-4" />

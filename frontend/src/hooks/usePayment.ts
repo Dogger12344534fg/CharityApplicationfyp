@@ -197,6 +197,20 @@ export const useVerifyEsewaPayment = (encodedData: string) => {
   });
 };
 
+export const useVerifyKhaltiPayment = (pidx: string) => {
+  return useQuery<VerifyEsewaResponse, Error>({
+    queryKey: ["khalti-verify", pidx],
+    queryFn: async () => {
+      const res = await axiosInstance.get<VerifyEsewaResponse>(
+        `/payments/khalti/verify?pidx=${pidx}`,
+      );
+      return res.data;
+    },
+    enabled: !!pidx,
+    retry: false,
+  });
+};
+
 export const useGetMyPayments = (params?: {
   page?: number;
   limit?: number;
@@ -357,4 +371,48 @@ export const useCreateManualPayment = () => {
       toast.error(getErrorMessage(error, "Failed to create manual payment."));
     },
   });
+};
+
+
+
+
+///khalti account intiation
+// Add these interfaces
+export interface InitiateKhaltiPayload {
+  campaignId?: string;
+  teamId?: string;
+  amount: number;
+  tipAmount?: number;
+  anonymous?: boolean;
+}
+
+export interface InitiateKhaltiResponse {
+  success: boolean;
+  message: string;
+  paymentId: string;
+  khaltiUrl: string;   // ← redirect user here
+  pidx: string;
+}
+
+// Add this hook
+export const useInitiateKhaltiPayment = () => {
+  return useMutation<InitiateKhaltiResponse, Error, InitiateKhaltiPayload>({
+    mutationFn: async (payload) => {
+      const res = await axiosInstance.post<InitiateKhaltiResponse>(
+        "/payments/khalti/initiate",
+        payload,
+      );
+      return res.data;
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Failed to initiate Khalti payment."));
+    },
+  });
+};
+
+// Helper to redirect to Khalti (same pattern as submitEsewaForm)
+export const redirectToKhalti = (khaltiUrl: string) => {
+  window.location.href = khaltiUrl;
+  // Khalti uses a redirect not a form POST
+  // unlike eSewa which needs a form submit
 };

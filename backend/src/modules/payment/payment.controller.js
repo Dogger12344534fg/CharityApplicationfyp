@@ -838,3 +838,202 @@ export const getRecentCampaignDonors = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+
+
+
+
+//khalit account intiation
+
+import {
+  initiateKhaltiPayment,
+  verifyKhaltiPayment,
+} from "../../services/khalti.service.js";
+
+// ─── Initiate Khalti Payment ──────────────────────────────────────────────────
+export const initiateKhaltiPaymentController = async (req, res) => {
+  try {
+    const { campaignId, teamId, amount, tipAmount = 0, anonymous = false } = req.body;
+    const donorId = req.user?._id;
+
+    if ((!campaignId && !teamId) || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Campaign ID or Team ID and amount are required.",
+      });
+    }
+
+    if (amount < 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Minimum donation amount is NPR 10.",
+      });
+    }
+
+    let successUrl, failureUrl, productName;
+
+    if (campaignId) {
+      const campaign = await Campaign.findById(campaignId);
+      if (!campaign) {
+        return res.status(404).json({ success: false, message: "Campaign not found." });
+      }
+      if (campaign.status !== "active") {
+        return res.status(422).json({
+          success: false,
+          message: "This campaign is not accepting donations.",
+        });
+      }
+      successUrl = `${FRONTEND_URL}/campaigns/${campaignId}/donate/success`;
+      failureUrl = `${FRONTEND_URL}/campaigns/${campaignId}/donate/failed`;
+      productName = campaign.title;
+
+    } else if (teamId) {
+      const team = await Team.findById(teamId);
+      if (!team) {
+        return res.status(404).json({ success: false, message: "Team not found." });
+      }
+      if (team.status !== "active") {
+        return res.status(422).json({
+          success: false,
+          message: "This team is not accepting donations.",
+        });
+      }
+      successUrl = `${FRONTEND_URL}/teams/${teamId}/donate/success`;
+      failureUrl = `${FRONTEND_URL}/teams/${teamId}/donate/failed`;
+      productName = team.name;
+    }
+
+    const totalAmount = Number(amount) + Number(tipAmount);
+    const transactionUuid = uuidv4();
+
+    // Save payment record first
+    const payment = await Payment.create({
+      campaign: campaignId || null,
+      team: teamId || null,
+      donor: donorId || null,
+      amount: Number(amount),
+      tipAmount: Number(tipAmount),
+      totalAmount,
+      transactionUuid,
+      gateway: "khalti",     // ← gateway is "khalti" not "esewa"
+      anonymous,
+      status: "initiated",
+    });
+
+    // Call Khalti API
+    const khaltiResponse = await initiateKhaltiPayment({
+      totalAmount,
+      transactionUuid,
+      successUrl,
+      failureUrl,
+      productName,
+    });
+
+    // Save pidx on the payment so we can verify later
+    payment.gatewayResponse = { pidx: khaltiResponse.pidx };
+    await payment.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Khalti payment initiated.",
+      paymentId: payment._id,
+      khaltiUrl: khaltiResponse.payment_url,  // ← frontend redirects here
+      pidx: khaltiResponse.pidx,
+    });
+
+  } catch (error) {
+    console.error("initiateKhaltiPayment error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ─── Verify Khalti Payment ────────────────────────────────────────────────────
+export const verifyKhaltiCallback = async (req, res) => {
+  try {
+    const { pidx } = req.query;
+
+    if (!pidx) {
+      return res.status(400).json({
+        success: false,
+        message: "No pidx received from Khalti.",
+      });
+    }
+
+    // Verify with Khalti
+    const verificationData = await verifyKhaltiPayment(pidx);
+
+    if (verificationData.status !== "Completed") {
+      await Payment.findOneAndUpdate(
+        { "gatewayResponse.pidx": pidx },
+        { status: "failed", gatewayResponse: verificationData },
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Khalti payment was not completed.",
+      });
+    }
+
+    // Find and update payment
+    const payment = await Payment.findOneAndUpdate(
+      { "gatewayResponse.pidx": pidx },
+      {
+        status: "completed",
+        esewaRefId: verificationData.transaction_id, // reusing this field for transaction id
+        gatewayResponse: verificationData,
+        paidAt: new Date(),
+      },
+      { new: true },
+    );
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment record not found.",
+      });
+    }
+
+    // Update campaign or team raised amount
+    if (payment.campaign) {
+      await Campaign.findByIdAndUpdate(payment.campaign, {
+        $inc: { raisedAmount: payment.amount, donorsCount: 1 },
+      });
+    }
+
+    if (payment.team) {
+      await Team.findByIdAndUpdate(payment.team, {
+        $inc: { raisedAmount: payment.amount },
+      });
+    }
+
+    // Update donor stats
+    if (payment.donor) {
+      const user = await User.findById(payment.donor);
+      if (user) {
+        user.totalDonated += payment.amount;
+        user.donationsCount += 1;
+        user.updateStreak();
+        user.badge = user.computeBadge();
+        await user.save();
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Khalti payment verified successfully.",
+      payment: {
+        id: payment._id,
+        amount: payment.amount,
+        tipAmount: payment.tipAmount,
+        totalAmount: payment.totalAmount,
+        transactionUuid: payment.transactionUuid,
+        status: payment.status,
+        paidAt: payment.paidAt,
+      },
+    });
+
+  } catch (error) {
+    console.error("verifyKhaltiCallback error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

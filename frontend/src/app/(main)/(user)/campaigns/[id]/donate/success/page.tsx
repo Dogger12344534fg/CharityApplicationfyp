@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   Heart,
   ChevronRight,
-  Loader2,
   AlertTriangle,
   ShieldCheck,
 } from "lucide-react";
-import { useVerifyEsewaPayment } from "@/src/hooks/usePayment";
+import { useVerifyEsewaPayment, useVerifyKhaltiPayment } from "@/src/hooks/usePayment";
 
 const fmtNPR = (n: number) =>
   n >= 100000 ? `NPR ${(n / 100000).toFixed(1)}L` : `NPR ${n.toLocaleString()}`;
@@ -20,8 +19,18 @@ function DonateSuccessPageInner() {
   const searchParams = useSearchParams();
   const id = params?.id as string;
   const encodedData = searchParams.get("data") ?? "";
+  const pidx = searchParams.get("pidx") ?? "";
 
-  const { data, isLoading, isError } = useVerifyEsewaPayment(encodedData);
+  const isKhalti = !!pidx;
+
+  const { data: esewaData, isLoading: esewaLoading, isError: esewaError } = useVerifyEsewaPayment(encodedData);
+  const { data: khaltiData, isLoading: khaltiLoading, isError: khaltiError } = useVerifyKhaltiPayment(pidx);
+
+  const data = isKhalti ? khaltiData : esewaData;
+  const isLoading = isKhalti ? khaltiLoading : esewaLoading;
+  const isError = isKhalti ? khaltiError : esewaError;
+  const gatewayLabel = isKhalti ? "Khalti" : "eSewa";
+  const refLabel = isKhalti ? "Khalti Transaction ID" : "eSewa Ref ID";
 
   if (isLoading)
     return (
@@ -122,7 +131,7 @@ function DonateSuccessPageInner() {
               value: payment.transactionUuid.slice(0, 16) + "…",
             },
             ...(payment.esewaRefId
-              ? [{ label: "eSewa Ref ID", value: payment.esewaRefId }]
+              ? [{ label: refLabel, value: payment.esewaRefId }]
               : []),
           ].map(({ label, value, bold }) => (
             <div key={label} className="flex justify-between text-[13px]">
@@ -142,7 +151,7 @@ function DonateSuccessPageInner() {
 
         <div className="flex items-center justify-center gap-2 mb-6 text-[12px] text-setu-600 font-semibold">
           <ShieldCheck className="w-4 h-4" />
-          Payment verified by eSewa
+          Payment verified by {gatewayLabel}
         </div>
 
         <div className="flex flex-col gap-3">

@@ -33,6 +33,17 @@ router.get("/esewa/verify", verifyEsewaCallback);
 // GET  /api/payments/esewa/failure   → eSewa failure redirect callback
 router.get("/esewa/failure", esewaFailure);
 
+
+// ─── Khalti ───────────────────────────────────────────────────────────────────
+import {
+  initiateKhaltiPaymentController,
+  verifyKhaltiCallback,
+} from "./payment.controller.js";
+
+// ─── Khalti ───────────────────────────────────────────────────────────────────
+router.post("/khalti/initiate", authMiddleware, initiateKhaltiPaymentController);
+router.get("/khalti/verify", verifyKhaltiCallback);
+
 // ─── User ─────────────────────────────────────────────────────────────────────
 // GET  /api/payments/my              → donor's own payment history
 router.get("/my", authMiddleware, getMyPayments);

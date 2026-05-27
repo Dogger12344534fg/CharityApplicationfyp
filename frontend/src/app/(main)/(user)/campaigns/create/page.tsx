@@ -365,6 +365,13 @@ export default function CreateCampaignPage() {
 
   const isValidNPPhone = (v: string) => /^(97|98)\d{8}$/.test(v.trim());
 
+
+
+
+  //need to change here for the document should be mandatory //&& docFiles.length > 0,
+
+
+  
   const canNext: Record<number, boolean> = {
     1: form.title.trim().length >= 10 && !!form.categoryId && !!form.longitude && isValidNPPhone(form.phoneNumber) && isValidNPPhone(form.esewaId),
     2: form.story.trim().length >= 80 && !!coverFile,
@@ -973,6 +980,18 @@ export default function CreateCampaignPage() {
                             clearance or any official document that proves the
                             campaign's legitimacy. Max 5 files, 20MB each.
                           </p>
+
+
+
+
+                          ///need to addthis cannot procceed without verificaiton documents.
+
+                          {/* Show error if tried to proceed without documents */}
+{docFiles.length === 0 && form.story.trim().length >= 80 && (
+  <p className="text-[11px] text-red-500 font-medium mb-2">
+    At least one verification document is required.
+  </p>
+)}
 
                           {/* Hidden file input */}
                           <input

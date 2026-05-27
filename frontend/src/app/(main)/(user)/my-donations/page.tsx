@@ -192,7 +192,14 @@ export default function MyDonationsPage() {
                                     <Heart className="w-2.5 h-2.5" /> Money
                                   </span>
                                   <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-setu-100 text-setu-700">
-                                    {payment.gateway === "esewa" ? "eSewa" : payment.gateway}
+                                    {payment.gateway === "esewa" ? "eSewa" 
+
+                                    ///added new lines for khalti and manual payment gateway display
+                                     : payment.gateway === "khalti"
+    ? "Khalti"
+    : payment.gateway === "manual"
+    ? "Manual": payment.gateway}
+
                                   </span>
                                   <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${S.color}`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${S.dot}`} />
