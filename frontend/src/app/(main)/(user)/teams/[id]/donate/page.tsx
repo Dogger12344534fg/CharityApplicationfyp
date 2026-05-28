@@ -8,11 +8,11 @@ import {
     Sparkles, Loader2, Smartphone, QrCode,
 } from "lucide-react";
 import { useGetTeamById, useInitiateTeamEsewaPayment } from "@/src/hooks/useTeam";
-import type { InitiateTeamDonationResponse } from "@/src/hooks/useTeam";
+import { useInitiateKhaltiPayment, redirectToKhalti } from "@/src/hooks/usePayment";
 
 // ── eSewa form submitter ──────────────────────────────────────
 // Builds a hidden HTML form and submits to eSewa URL
-function submitEsewaForm(url: string, payload: InitiateTeamDonationResponse["esewaPayload"]) {
+function submitEsewaForm(url: string, payload: Record<string, string | number>) {
     const form = document.createElement("form");
     form.method = "POST";
     form.action = url;
@@ -41,6 +41,7 @@ const FIXED_TIP_PCT = 5;
 type PayMethod = "esewa" | "khalti";
 const PAY_METHODS = [
     { key: "esewa" as const, label: "eSewa", desc: "Pay with your eSewa wallet", color: "#60C153", logo: "E" },
+    { key: "khalti" as const, label: "Khalti", desc: "Pay with your Khalti wallet", color: "#5C2D91", logo: "K" },
 ];
 
 const fmtNPR = (n: number) =>
@@ -57,6 +58,7 @@ function TeamDonatePageInner() {
     const { data } = useGetTeamById(id);
     const team = data?.data;
     const { mutate: initiatePayment, isPending: initiating } = useInitiateTeamEsewaPayment();
+    const { mutate: initiateKhaltiPayment, isPending: initiatingKhalti } = useInitiateKhaltiPayment();
 
     // Pre-fill amount passed via ?amount= query param from the team detail page
     const QUICK_VALUES = QUICK_AMOUNTS.map((q) => q.value);
@@ -90,25 +92,17 @@ function TeamDonatePageInner() {
     };
 
     const handleDonate = () => {
-        if (payMethod !== "esewa") {
-            alert("Khalti integration coming soon!");
-            return;
+        if (payMethod === "esewa") {
+            initiatePayment(
+                { teamId: id, amount: donationAmt - tipAmt, tipAmount: tipAmt, anonymous },
+                { onSuccess: (data) => { submitEsewaForm(data.esewaUrl, data.esewaPayload); } },
+            );
+        } else if (payMethod === "khalti") {
+            initiateKhaltiPayment(
+                { teamId: id, amount: donationAmt - tipAmt, tipAmount: tipAmt, anonymous },
+                { onSuccess: (data) => { redirectToKhalti(data.khaltiUrl); } },
+            );
         }
-
-        // Send teamId to backend — backend resolves which campaign to use internally
-        initiatePayment(
-            {
-                teamId: id,
-                amount: donationAmt - tipAmt,
-                tipAmount: tipAmt,
-                anonymous,
-            },
-            {
-                onSuccess: (data) => {
-                    submitEsewaForm(data.esewaUrl, data.esewaPayload);
-                },
-            },
-        );
     };
 
     return (
@@ -292,7 +286,7 @@ function TeamDonatePageInner() {
                                             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[13px] font-black" style={{ backgroundColor: "#5C2D91" }}>K</div>
                                             <div>
                                                 <p className="text-[13px] font-bold text-purple-800">Pay with Khalti</p>
-                                                <p className="text-[12px] text-purple-700 mt-0.5">Khalti integration coming soon. Please use eSewa for now.</p>
+                                                <p className="text-[12px] text-purple-700 mt-0.5 leading-relaxed">You'll be redirected to Khalti to complete the payment securely.</p>
                                             </div>
                                         </div>
                                     )}
@@ -357,9 +351,9 @@ function TeamDonatePageInner() {
                                             className="flex-1 py-3.5 bg-white border-2 border-gray-200 text-gray-600 text-[14px] font-semibold rounded-xl hover:border-gray-300 transition-colors cursor-pointer">
                                             ← Back
                                         </button>
-                                        <button onClick={handleDonate} disabled={initiating}
+                                        <button onClick={handleDonate} disabled={initiating || initiatingKhalti}
                                             className="flex-[2] py-4 bg-setu-700 hover:bg-setu-600 disabled:bg-setu-400 text-white font-bold rounded-xl text-[15px] transition-all shadow-[0_4px_14px_rgba(21,104,57,0.35)] hover:-translate-y-0.5 disabled:cursor-not-allowed cursor-pointer border-none flex items-center justify-center gap-2">
-                                            {initiating ? (
+                                            {initiating || initiatingKhalti ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 animate-spin" />
                                                     Redirecting to {PAY_METHODS.find(p => p.key === payMethod)?.label}…

@@ -7,6 +7,7 @@ import {
     Heart, ChevronRight, AlertTriangle, ShieldCheck,
 } from "lucide-react";
 import { useVerifyTeamEsewaPayment } from "@/src/hooks/useTeam";
+import { useVerifyKhaltiPayment } from "@/src/hooks/usePayment";
 
 const fmtNPR = (n: number) =>
     n >= 100000 ? `NPR ${(n / 100000).toFixed(1)}L` : `NPR ${n.toLocaleString()}`;
@@ -16,8 +17,17 @@ function TeamDonateSuccessPageInner() {
     const searchParams = useSearchParams();
     const id = params?.id as string;
     const encodedData = searchParams.get("data") ?? "";
+    const pidx = searchParams.get("pidx") ?? "";
+    const isKhalti = !!pidx;
 
-    const { data, isLoading, isError } = useVerifyTeamEsewaPayment(encodedData);
+    const { data: esewaData, isLoading: esewaLoading, isError: esewaError } = useVerifyTeamEsewaPayment(encodedData);
+    const { data: khaltiData, isLoading: khaltiLoading, isError: khaltiError } = useVerifyKhaltiPayment(pidx);
+
+    const data = isKhalti ? khaltiData : esewaData;
+    const isLoading = isKhalti ? khaltiLoading : esewaLoading;
+    const isError = isKhalti ? khaltiError : esewaError;
+    const gatewayLabel = isKhalti ? "Khalti" : "eSewa";
+    const refLabel = isKhalti ? "Khalti Transaction ID" : "eSewa Ref ID";
 
     if (isLoading)
         return (
@@ -85,7 +95,7 @@ function TeamDonateSuccessPageInner() {
                         { label: "Platform tip", value: fmtNPR(payment.tipAmount) },
                         { label: "Total paid", value: fmtNPR(payment.totalAmount), bold: true },
                         { label: "Transaction ID", value: payment.transactionUuid.slice(0, 16) + "…" },
-                        ...(payment.esewaRefId ? [{ label: "eSewa Ref ID", value: payment.esewaRefId }] : []),
+                        ...(payment.esewaRefId ? [{ label: refLabel, value: payment.esewaRefId }] : []),
                     ].map(({ label, value, bold }: any) => (
                         <div key={label} className="flex justify-between text-[13px]">
                             <span className="text-gray-400 font-medium">{label}</span>
@@ -96,7 +106,7 @@ function TeamDonateSuccessPageInner() {
 
                 <div className="flex items-center justify-center gap-2 mb-6 text-[12px] text-setu-600 font-semibold">
                     <ShieldCheck className="w-4 h-4" />
-                    Payment verified by eSewa
+                    Payment verified by {gatewayLabel}
                 </div>
 
                 <div className="flex flex-col gap-3">
