@@ -268,12 +268,12 @@ export default function HowItWorksPage() {
         <p className="text-[13px] font-bold text-setu-900">eSewa</p>
         <p className="text-[11px] text-setu-600/55">Nepal's #1 wallet</p>
       </div>
-      <div className="flex flex-col items-center gap-2 p-5 bg-setu-50 border border-setu-100 rounded-2xl text-center w-36">
+      <div className="flex flex-col items-center gap-2 p-5 bg-purple-50 border border-purple-200 rounded-2xl text-center w-36">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm text-white text-[16px] font-black" style={{ backgroundColor: "#5C2D91" }}>
           K
         </div>
-        <p className="text-[13px] font-bold text-setu-900">Khalti</p>
-        <p className="text-[11px] text-setu-600/55">Fast & secure wallet</p>
+        <p className="text-[13px] font-bold text-purple-900">Khalti</p>
+        <p className="text-[11px] text-purple-600/70">Fast & secure wallet</p>
       </div>
     </div>
   </div>
