@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   BarChart3, AlertCircle, Users, ShoppingCart, Leaf,
   Award, Package, BarChart2, MessageSquare, Megaphone,
-  Settings, LogOut, X, ChevronLeft, ChevronRight,
+  Settings, LogOut, X, ChevronLeft, ChevronRight, TrendingUp,
 } from "lucide-react";
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { title: "Teams",         href: "/admin/teams",        icon: Users,        section: "main" },
   { title: "Users & Donors",href: "/admin/users",        icon: Users,        section: "main" },
   { title: "Transactions",  href: "/admin/transactions", icon: ShoppingCart, section: "main" },
+  { title: "Inventory",     href: "/admin/inventory",    icon: TrendingUp,   section: "main" },
   { title: "Categories",    href: "/admin/categories",   icon: Leaf,         section: "management" },
   { title: "Hall of Fame",  href: "/admin/hall-of-fame", icon: Award,        section: "management" },
   { title: "Relief Goods",  href: "/admin/goods",        icon: Package,      section: "management" },
