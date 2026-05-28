@@ -263,14 +263,15 @@ export default function HowItWorksPage() {
     </h3>
     <div className="flex justify-center gap-4">
       {[
-        { icon: Smartphone, label: "eSewa", sub: "Nepal's #1 wallet" },
-      ].map(({ icon: Icon, label, sub }) => (
+        { icon: Smartphone, label: "eSewa", sub: "Nepal's #1 wallet", color: "text-green-600" },
+        { icon: CreditCard, label: "Khalti", sub: "Fast & secure wallet", color: "text-purple-600" },
+      ].map(({ icon: Icon, label, sub, color }) => (
         <div
           key={label}
           className="flex flex-col items-center gap-2 p-5 bg-setu-50 border border-setu-100 rounded-2xl text-center w-36"
         >
           <div className="w-10 h-10 bg-white rounded-xl border border-setu-100 flex items-center justify-center shadow-sm">
-            <Icon className="w-5 h-5 text-setu-600" />
+            <Icon className={`w-5 h-5 ${color}`} />
           </div>
           <p className="text-[13px] font-bold text-setu-900">{label}</p>
           <p className="text-[11px] text-setu-600/55">{sub}</p>
