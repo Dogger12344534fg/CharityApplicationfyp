@@ -471,7 +471,9 @@ function DonatePageInner() {
 
 
 
-                  ///for khalti payment gateway display in payment method step
+
+
+//for khalti payment gateway display info on UI when user select khalti as payment method in step 2 payment method selection
 
                  
 {payMethod === "khalti" && (

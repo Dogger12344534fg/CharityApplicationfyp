@@ -984,7 +984,7 @@ export default function CreateCampaignPage() {
 
 
 
-                          ///need to addthis cannot procceed without verificaiton documents.
+                          //need to addthis cannot procceed without verificaiton documents.
 
                           {/* Show error if tried to proceed without documents */}
 {docFiles.length === 0 && form.story.trim().length >= 80 && (
