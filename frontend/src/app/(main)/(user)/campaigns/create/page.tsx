@@ -984,9 +984,9 @@ export default function CreateCampaignPage() {
 
 
 
-                          //need to addthis cannot procceed without verificaiton documents.
+                         
 
-                          {/* Show error if tried to proceed without documents */}
+                          {/* HELLO THIS IS NEW */}
 {docFiles.length === 0 && form.story.trim().length >= 80 && (
   <p className="text-[11px] text-red-500 font-medium mb-2">
     At least one verification document is required.
