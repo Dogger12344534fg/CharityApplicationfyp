@@ -588,12 +588,6 @@ export function Navbar() {
 										className="flex items-center gap-2.5 px-4 py-3 text-[14px] font-semibold text-setu-800 hover:bg-setu-50 rounded-xl no-underline transition-colors">
 										<Trophy className="w-4 h-4" /> My Donations
 									</Link>
-									<Link
-										href="/settings"
-										onClick={() => setMobileOpen(false)}
-										className="flex items-center gap-2.5 px-4 py-3 text-[14px] font-semibold text-setu-800 hover:bg-setu-50 rounded-xl no-underline transition-colors">
-										<Settings className="w-4 h-4" /> Settings
-									</Link>
 									<div className="mx-2 my-1 h-px bg-setu-100" />
 									<button
 										onClick={() => setShowLogoutConfirm(true)}
