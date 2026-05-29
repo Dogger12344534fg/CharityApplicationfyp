@@ -77,14 +77,14 @@ export function OrbitRings() {
 				size={900}
 				duration={180}
 				direction={1}
-				className="border-green-400/50"
+				className="border-green-700/60"
 			/>
 			{/* Inner ring — counter-clockwise, faster */}
 			<OrbitRing
 				size={680}
 				duration={140}
 				direction={-1}
-				className="border-green-400/50"
+				className="border-green-600/60"
 			/>
 		</>
 	);

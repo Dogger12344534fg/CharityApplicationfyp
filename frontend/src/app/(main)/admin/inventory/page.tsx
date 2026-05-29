@@ -72,7 +72,7 @@ export default function InventoryPage() {
     donorName: p.anonymous ? "Anonymous" : p.donor?.name || "Unknown",
     campaignTitle: p.campaign?.title || "Unknown Campaign",
     donationAmount: p.amount,
-    commission: Math.round(p.amount * COMMISSION_RATE * 100) / 100,
+    commission: p.tipAmount ?? Math.round(p.amount * COMMISSION_RATE * 100) / 100,
     method: p.gateway || "unknown",
     status: p.status,
     date: p.paidAt || p.createdAt,
@@ -83,8 +83,8 @@ export default function InventoryPage() {
   const methodRevenue: Record<string, number> = stats?.methodRevenue || {};
   const trends = stats?.trends || { revenue: 0, completedCount: 0 };
 
-  const totalCommission = Math.round(totalRevenue * COMMISSION_RATE * 100) / 100;
-  const avgCommission = completedCount > 0 ? Math.round((totalCommission / completedCount) * 100) / 100 : 0;
+  const totalCommission = earnings.reduce((sum, e) => sum + e.commission, 0);
+  const avgCommission = earnings.length > 0 ? Math.round((totalCommission / earnings.length) * 100) / 100 : 0;
 
   const columns = [
     {

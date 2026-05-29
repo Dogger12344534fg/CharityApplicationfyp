@@ -281,6 +281,14 @@ export default function HomePage() {
 							"radial-gradient(ellipse 90% 85% at 50% 50%, transparent 60%, #919391ff 85%)",
 					}}
 				/>
+				{/* Center text readability overlay */}
+				<div
+					className="absolute inset-0 pointer-events-none"
+					style={{
+						background:
+							"radial-gradient(ellipse 62% 72% at 50% 46%, rgba(255, 250, 240, 0.60) 0%, rgba(255,250,240,0.62) 38%, rgba(255,250,240,0.18) 65%, transparent 80%)",
+					}}
+				/>
 
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
 					{/* Top badge */}
@@ -353,7 +361,7 @@ export default function HomePage() {
 							<Reveal delay={0.1}>
 								<h1
 									className="text-[clamp(48px,4.5vw,72px)] font-bold leading-[1.02] tracking-[-2.5px] text-setu-950 mb-5"
-									style={{ fontFamily: "var(--font-display)" }}>
+									style={{ fontFamily: "var(--font-display)", textShadow: "0 1px 12px rgba(255,250,240,0.9), 0 2px 24px rgba(255,250,240,0.6)" }}>
 									Donate Hope.
 									<br />
 									<em className="italic text-setu-600">Change Nepal.</em>
@@ -361,7 +369,7 @@ export default function HomePage() {
 							</Reveal>
 
 							<Reveal delay={0.22}>
-								<p className="text-[16px] text-setu-800 font-semibold leading-[1.75] mb-9 px-4">
+								<p className="text-[16px] text-setu-900 font-semibold leading-[1.75] mb-9 px-4" style={{ textShadow: "0 1px 8px rgba(255,250,240,0.8)" }}>
 									Connect with causes that matter. Give money, donate goods, or
 									start a campaign — every act of kindness matters.
 								</p>
@@ -402,14 +410,14 @@ export default function HomePage() {
 							<Reveal>
 								<h1
 									className="text-[clamp(40px,8vw,56px)] font-bold leading-[1.04] tracking-[-2px] text-setu-950 mb-4"
-									style={{ fontFamily: "var(--font-display)" }}>
+									style={{ fontFamily: "var(--font-display)", textShadow: "0 1px 12px rgba(255,250,240,0.9), 0 2px 24px rgba(255,250,240,0.6)" }}>
 									Donate Hope.
 									<br />
 									<em className="italic text-setu-600">Change Nepal.</em>
 								</h1>
 							</Reveal>
 							<Reveal delay={0.12}>
-								<p className="text-[15px] text-setu-1000/50 leading-[1.75] mb-8 max-w-sm mx-auto">
+								<p className="text-[15px] text-setu-900 font-medium leading-[1.75] mb-8 max-w-sm mx-auto" style={{ textShadow: "0 1px 8px rgba(255,250,240,0.8)" }}>
 									Connect with causes that matter. Give money, donate goods, or
 									start a campaign.
 								</p>
