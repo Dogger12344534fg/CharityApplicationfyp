@@ -472,10 +472,7 @@ function DonatePageInner() {
 
 
 
-
-//for khalti payment gateway display info on UI when user select khalti as payment method in step 2 payment method selection
-
-                 
+      
 {payMethod === "khalti" && (
   <div className="border border-purple-100 bg-purple-50 rounded-xl p-4 flex items-start gap-3">
     <div
