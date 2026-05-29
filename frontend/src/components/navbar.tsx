@@ -146,6 +146,7 @@ export function Navbar() {
 	const [scrolled, setScrolled] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+	const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
 	const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -527,18 +528,41 @@ export function Navbar() {
 							{navLinks.map((link) =>
 								link.children ? (
 									<div key={link.label}>
-										<p className="px-4 pt-3 pb-1 text-[11px] font-bold uppercase tracking-widest text-setu-500">
+										<button
+											onClick={() =>
+												setMobileExpanded((v) =>
+													v === link.label ? null : link.label,
+												)
+											}
+											className="w-full flex items-center justify-between px-4 py-3 text-[15px] font-medium text-setu-800 hover:bg-setu-50 rounded-xl cursor-pointer border-none bg-transparent transition-colors duration-150">
 											{link.label}
-										</p>
-										{link.children.map((child) => (
-											<Link
-												key={child.href}
-												href={child.href}
-												onClick={() => setMobileOpen(false)}
-												className="flex items-center gap-3 px-4 py-2.5 text-[14px] font-medium text-setu-800 hover:bg-setu-50 hover:text-setu-700 rounded-xl no-underline transition-colors duration-150">
-												{child.label}
-											</Link>
-										))}
+											<ChevronDown
+												className={[
+													"w-4 h-4 text-setu-500 transition-transform duration-200",
+													mobileExpanded === link.label
+														? "rotate-180"
+														: "rotate-0",
+												].join(" ")}
+											/>
+										</button>
+										{mobileExpanded === link.label && (
+											<div className="ml-4 mt-0.5 flex flex-col gap-0.5">
+												{link.children.map((child) => (
+													<Link
+														key={child.href}
+														href={child.href}
+														onClick={() => setMobileOpen(false)}
+														className="flex flex-col px-4 py-2.5 rounded-xl no-underline hover:bg-setu-50 transition-colors duration-150">
+														<span className="text-[14px] font-semibold text-setu-900">
+															{child.label}
+														</span>
+														<span className="text-[12px] text-setu-600/60 mt-0.5">
+															{child.sub}
+														</span>
+													</Link>
+												))}
+											</div>
+										)}
 									</div>
 								) : (
 									<Link
