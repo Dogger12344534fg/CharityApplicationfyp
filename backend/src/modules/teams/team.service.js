@@ -46,6 +46,14 @@ export const createTeamService = async ({ body, file, userId }) => {
   let avatar = null;
   if (file) avatar = { url: file.path, publicId: file.filename };
 
+  const expiry = new Date(Date.now() + INVITE_TOKEN_TTL_MS);
+  const invites = emails.map((email) => ({
+    email,
+    status: "pending",
+    inviteToken: generateInviteToken(),
+    tokenExpiry: expiry,
+  }));
+
   const team = await Team.create({
     name, description, location,
     privacy: privacy ?? "public",
@@ -53,7 +61,7 @@ export const createTeamService = async ({ body, file, userId }) => {
     website: website || null,
     createdBy: userId, avatar,
     status: "pending",
-    invites: emails.map((email) => ({ email })),
+    invites,
     members: [{ user: userId, role: "admin" }],
   });
 
@@ -72,6 +80,21 @@ export const createTeamService = async ({ body, file, userId }) => {
     }
   } catch (error) {
     console.error("Failed to send team creation email:", error);
+  }
+
+  // Send invite emails to all invited members
+  const shortDesc = description?.length > 120 ? `${description.substring(0, 120)}…` : description;
+  for (const inv of invites) {
+    const inviteLink = `${FRONTEND_URL}/teams/invite/${inv.inviteToken}`;
+    sendThemedEmail(
+      inv.email,
+      `You're invited to join "${name}" on Setu`,
+      "You've been invited to join a team!",
+      `You've been invited to join ${name} on Setu.`,
+      `${shortDesc ? `<p style="margin:0 0 12px;color:#6b7280;font-size:14px;">${shortDesc}</p>` : ""}<p style="margin:0;color:#6b7280;font-size:13px;">This invitation expires in 7 days.</p>`,
+      "Accept Invitation",
+      inviteLink
+    ).catch((err) => console.error(`Invite email failed for ${inv.email}:`, err));
   }
 
   return team;
@@ -381,7 +404,7 @@ export const inviteMembersService = async ({ id, emails, userId }) => {
       inv.email,
       `You're invited to join "${team.name}" on Setu`,
       "You've been invited to join a team!",
-      `You've been invited to join <strong>${team.name}</strong> on Setu.`,
+      `You've been invited to join ${team.name} on Setu.`,
       `${shortDesc ? `<p style="margin:0 0 12px;color:#6b7280;font-size:14px;">${shortDesc}</p>` : ""}<p style="margin:0;color:#6b7280;font-size:13px;">This invitation expires in 7 days.</p>`,
       "Accept Invitation",
       inviteLink
