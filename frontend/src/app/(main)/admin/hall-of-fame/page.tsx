@@ -90,7 +90,7 @@ export default function HallOfFamePage() {
 				/>
 				<DashboardCard
 					title="Total Contributions"
-					value={`₨${(stats.totalDonated / 1000).toFixed(1)}k`}
+					value={`Rs. ${(stats.totalDonated / 1000).toFixed(1)}k`}
 					subtitle="cumulative donations"
 					icon={DollarSign}
 					color="green"
@@ -230,7 +230,7 @@ export default function HallOfFamePage() {
 										Total Contribution
 									</p>
 									<p className="text-xl font-bold text-setu-700">
-										₨{(entry.totalDonated / 1000).toFixed(1)}k
+										Rs. {(entry.totalDonated / 1000).toFixed(1)}k
 									</p>
 								</div>
 								<div className="bg-setu-50 p-3 rounded-lg">
@@ -296,7 +296,7 @@ export default function HallOfFamePage() {
 							<div className="bg-setu-50 p-4 rounded-lg text-center">
 								<p className="text-xs text-setu-600 mb-2">Total Contribution</p>
 								<p className="text-2xl font-bold text-setu-700">
-									₨{(selectedEntry.totalDonated / 1000).toFixed(1)}k
+									Rs. {(selectedEntry.totalDonated / 1000).toFixed(1)}k
 								</p>
 							</div>
 							<div className="bg-setu-50 p-4 rounded-lg text-center">

@@ -585,9 +585,9 @@ export default function TeamsPage() {
               <h4 className="text-[10px] font-bold text-setu-400 uppercase tracking-widest mb-0.5 flex items-center gap-1">
                 <DollarSign className="w-3 h-3" /> Fundraising
               </h4>
-              <p className="text-xl font-bold text-setu-900 font-display">₨{selectedTeam.raisedAmount.toLocaleString()}</p>
+              <p className="text-xl font-bold text-setu-900 font-display">Rs. {selectedTeam.raisedAmount.toLocaleString()}</p>
             </div>
-            <p className="text-xs text-setu-500">Goal: ₨{selectedTeam.goalAmount.toLocaleString()}</p>
+            <p className="text-xs text-setu-500">Goal: Rs. {selectedTeam.goalAmount.toLocaleString()}</p>
           </div>
           <div className="w-full bg-setu-100 rounded-full h-2 overflow-hidden">
             <div

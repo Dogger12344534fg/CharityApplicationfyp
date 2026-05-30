@@ -336,10 +336,10 @@ export default function CampaignDetailsPage({
 						
 						<div className="mb-2">
 							<span className="text-3xl font-display font-bold text-green-600">
-								₨{campaign.raisedAmount.toLocaleString()}
+								Rs. {campaign.raisedAmount.toLocaleString()}
 							</span>
 							<span className="text-sm text-setu-500 ml-2">
-								raised of ₨{campaign.goalAmount.toLocaleString()}
+								raised of Rs. {campaign.goalAmount.toLocaleString()}
 							</span>
 						</div>
 

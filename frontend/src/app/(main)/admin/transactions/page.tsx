@@ -244,7 +244,7 @@ export default function TransactionsPage() {
 			sortable: true,
 			render: (value: number) => (
 				<span className="font-semibold text-setu-900">
-					₨{value.toLocaleString()}
+					Rs. {value.toLocaleString()}
 				</span>
 			),
 		},
@@ -412,7 +412,7 @@ export default function TransactionsPage() {
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 				<DashboardCard
 					title="Total Revenue"
-					value={`₨${(totalRevenue / 1000).toFixed(0)}k`}
+					value={`Rs. ${(totalRevenue / 1000).toFixed(0)}k`}
 					icon={DollarSign}
 					trend={{ 
 						value: Math.abs(trends.revenue), 
@@ -422,7 +422,7 @@ export default function TransactionsPage() {
 				/>
 				<DashboardCard
 					title="Pending Amount"
-					value={`₨${(pendingAmount / 1000).toFixed(0)}k`}
+					value={`Rs. ${(pendingAmount / 1000).toFixed(0)}k`}
 					icon={AlertCircle}
 					trend={{ 
 						value: Math.abs(trends.pendingAmount), 
@@ -442,7 +442,7 @@ export default function TransactionsPage() {
 				/>
 				<DashboardCard
 					title="Average Transaction"
-					value={`₨${averageTransaction.toLocaleString()}`}
+					value={`Rs. ${averageTransaction.toLocaleString()}`}
 					icon={TrendingUp}
 					trend={{ 
 						value: Math.abs(trends.averageTransaction), 
@@ -527,7 +527,7 @@ export default function TransactionsPage() {
 										{getMethodLabel(method)}
 									</span>
 									<span className="font-semibold text-setu-900">
-										₨{(amount as number).toLocaleString()}
+										Rs. {(amount as number).toLocaleString()}
 									</span>
 								</div>
 							))
@@ -608,7 +608,7 @@ export default function TransactionsPage() {
 						<div>
 							<p className="text-sm text-setu-600">Amount</p>
 							<p className="text-3xl font-bold text-setu-900 mt-2">
-								₨{selectedTransaction.amount.toLocaleString()}
+								Rs. {selectedTransaction.amount.toLocaleString()}
 							</p>
 						</div>
 
@@ -897,7 +897,7 @@ export default function TransactionsPage() {
 								<p><strong>ID:</strong> {selectedTransaction.id}</p>
 								<p><strong>Donor:</strong> {selectedTransaction.donorName}</p>
 								<p><strong>Campaign:</strong> {selectedTransaction.campaignTitle}</p>
-								<p><strong>Amount:</strong> ₨{selectedTransaction.amount.toLocaleString()}</p>
+								<p><strong>Amount:</strong> Rs. {selectedTransaction.amount.toLocaleString()}</p>
 								<p><strong>Status:</strong> {selectedTransaction.status}</p>
 							</div>
 						</div>

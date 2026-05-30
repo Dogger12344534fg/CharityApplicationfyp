@@ -113,7 +113,7 @@ export default function InventoryPage() {
       label: "Donation Amount",
       sortable: true,
       render: (value: number) => (
-        <span className="font-semibold text-setu-700">₨{value.toLocaleString()}</span>
+        <span className="font-semibold text-setu-700">Rs. {value.toLocaleString()}</span>
       ),
     },
     {
@@ -121,7 +121,7 @@ export default function InventoryPage() {
       label: "Commission (5%)",
       sortable: true,
       render: (value: number) => (
-        <span className="font-bold text-green-700">₨{value.toLocaleString()}</span>
+        <span className="font-bold text-green-700">Rs. {value.toLocaleString()}</span>
       ),
     },
     {
@@ -192,7 +192,7 @@ export default function InventoryPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <DashboardCard
           title="Total Platform Earnings"
-          value={`₨${(totalCommission / 1000).toFixed(1)}k`}
+          value={`Rs. ${(totalCommission / 1000).toFixed(1)}k`}
           icon={TrendingUp}
           trend={{
             value: Math.abs(trends.revenue),
@@ -202,7 +202,7 @@ export default function InventoryPage() {
         />
         <DashboardCard
           title="Total Donations Processed"
-          value={`₨${(totalRevenue / 1000).toFixed(1)}k`}
+          value={`Rs. ${(totalRevenue / 1000).toFixed(1)}k`}
           icon={DollarSign}
           trend={{
             value: Math.abs(trends.revenue),
@@ -222,7 +222,7 @@ export default function InventoryPage() {
         />
         <DashboardCard
           title="Avg. Commission / Transaction"
-          value={`₨${avgCommission.toLocaleString()}`}
+          value={`Rs. ${avgCommission.toLocaleString()}`}
           icon={BarChart2}
           trend={{ value: 5, direction: "up" }}
           color="gold"
@@ -237,10 +237,10 @@ export default function InventoryPage() {
               Total Platform Commission Earned
             </p>
             <p className="text-4xl font-display font-bold text-green-800">
-              ₨{totalCommission.toLocaleString()}
+              Rs. {totalCommission.toLocaleString()}
             </p>
             <p className="text-sm text-green-600 mt-1">
-              5% of ₨{totalRevenue.toLocaleString()} total donations processed
+              5% of Rs. {totalRevenue.toLocaleString()} total donations processed
             </p>
           </div>
           <div className="flex items-center gap-3 bg-white/60 border border-green-200 rounded-xl px-5 py-3">
@@ -269,10 +269,10 @@ export default function InventoryPage() {
                     <span className="text-setu-500">{getMethodIcon(method)}</span>
                     <div>
                       <p className="text-sm font-medium text-setu-800">{getMethodLabel(method)}</p>
-                      <p className="text-xs text-setu-500">₨{(amount as number).toLocaleString()} donations</p>
+                      <p className="text-xs text-setu-500">Rs. {(amount as number).toLocaleString()} donations</p>
                     </div>
                   </div>
-                  <span className="font-bold text-green-700">₨{methodCommission.toLocaleString()}</span>
+                  <span className="font-bold text-green-700">Rs. {methodCommission.toLocaleString()}</span>
                 </div>
               );
             })}

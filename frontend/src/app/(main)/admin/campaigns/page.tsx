@@ -320,7 +320,7 @@ export default function CampaignsPage() {
 			sortable: true,
 			render: (value: number, row: CampaignRow) => (
 				<div className="text-sm">
-					<p className="font-medium">₨{value.toLocaleString()}</p>
+					<p className="font-medium">Rs. {value.toLocaleString()}</p>
 					<div className="w-24 bg-setu-100 rounded-full h-2 mt-1">
 						<div
 							className="bg-setu-500 h-full rounded-full"
@@ -923,11 +923,11 @@ function DonorsModal({
 										</td>
 										<td className="px-4 py-3">
 											<p className="font-semibold text-green-600">
-												₨{p.amount.toLocaleString()}
+												Rs. {p.amount.toLocaleString()}
 											</p>
 											{p.tipAmount > 0 && (
 												<p className="text-[10px] text-setu-400">
-													+ ₨{p.tipAmount} tip
+													+ Rs. {p.tipAmount} tip
 												</p>
 											)}
 										</td>

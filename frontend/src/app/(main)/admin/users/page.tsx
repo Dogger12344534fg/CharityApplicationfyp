@@ -149,7 +149,7 @@ export default function UsersPage() {
 			sortable: true,
 			render: (value: number) => (
 				<span className="font-semibold text-setu-900">
-					₨{value.toLocaleString()}
+					Rs. {value.toLocaleString()}
 				</span>
 			),
 		},
@@ -455,7 +455,7 @@ export default function UsersPage() {
 								<div className="bg-setu-50 p-3 rounded-lg">
 									<p className="text-xs text-setu-600 mb-1">Total Donated</p>
 									<p className="text-lg font-bold text-setu-900">
-										₨{selectedDonor.totalDonated.toLocaleString()}
+										Rs. {selectedDonor.totalDonated.toLocaleString()}
 									</p>
 								</div>
 								<div className="bg-green-50 p-3 rounded-lg">
@@ -467,7 +467,7 @@ export default function UsersPage() {
 								<div className="bg-blue-50 p-3 rounded-lg">
 									<p className="text-xs text-blue-600 mb-1">Avg Donation</p>
 									<p className="text-lg font-bold text-blue-900">
-										₨
+										Rs. 
 										{selectedDonor.donationsCount > 0 ? Math.round(
 											selectedDonor.totalDonated / selectedDonor.donationsCount,
 										).toLocaleString() : 0}
@@ -690,7 +690,7 @@ export default function UsersPage() {
 								<p><strong>Name:</strong> {selectedDonor.name}</p>
 								<p><strong>Email:</strong> {selectedDonor.email}</p>
 								<p><strong>Account Type:</strong> {selectedDonor.accountType || "Individual"}</p>
-								<p><strong>Total Donated:</strong> ₨{selectedDonor.totalDonated.toLocaleString()}</p>
+								<p><strong>Total Donated:</strong> Rs. {selectedDonor.totalDonated.toLocaleString()}</p>
 								<p><strong>Donations Count:</strong> {selectedDonor.donationsCount}</p>
 								<p><strong>Status:</strong> {selectedDonor.status}</p>
 							</div>

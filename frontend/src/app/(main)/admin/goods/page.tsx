@@ -461,7 +461,7 @@ export default function GoodsPage() {
 
         <div className="p-4 rounded-lg border border-setu-100 bg-white">
           <p className="text-sm text-setu-600 mb-1">Total Value</p>
-          <p className="text-2xl font-bold text-setu-900">₨{stats.totalValue.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-setu-900">Rs. {stats.totalValue.toLocaleString()}</p>
         </div>
       </div>
 
@@ -561,7 +561,7 @@ export default function GoodsPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-setu-600 font-sans">{row.campaignTitle}</td>
                     <td className="px-6 py-4 text-sm text-setu-600 font-sans">{row.totalItems}</td>
-                    <td className="px-6 py-4 text-sm text-setu-600 font-sans">₨{row.totalValue.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-sm text-setu-600 font-sans">Rs. {row.totalValue.toLocaleString()}</td>
                     <td className="px-6 py-4 text-sm text-setu-600 font-sans">{row.city}</td>
                     <td className="px-6 py-4">{row.statusBadge}</td>
                     <td className="px-6 py-4 text-sm text-setu-600 font-sans">{row.createdDate}</td>
@@ -651,7 +651,7 @@ export default function GoodsPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-setu-900">₨{selectedDonation.totalEstimatedValue.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-setu-900">Rs. {selectedDonation.totalEstimatedValue.toLocaleString()}</p>
                   <p className="text-sm text-setu-500">{selectedDonation.totalItems} items</p>
                 </div>
               </div>
@@ -727,7 +727,7 @@ export default function GoodsPage() {
                           </div>
                           <div className="text-right flex-shrink-0">
                             <div className="inline-block text-setu-900 px-3 py-1.5 rounded-xl mb-1">
-                              <p className="font-bold text-lg">₨{item.estimatedValue.toLocaleString()}</p>
+                              <p className="font-bold text-lg">Rs. {item.estimatedValue.toLocaleString()}</p>
                             </div>
                             <p className="text-xs font-bold text-setu-500 uppercase tracking-tighter">{item.quantity} {item.unit}</p>
                           </div>

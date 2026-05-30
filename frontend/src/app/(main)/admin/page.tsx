@@ -429,7 +429,7 @@ export default function DashboardPage() {
 									</div>
 									<div className="text-right">
 										<p className="font-semibold text-setu-900">
-											₨{txn.amount.toLocaleString()}
+											Rs. {txn.amount.toLocaleString()}
 										</p>
 										<Badge
 											variant={
