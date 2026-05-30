@@ -35,11 +35,12 @@ import {
 import DashboardCard from "@/src/components/dashboard/DashboardCard";
 import StatCard from "@/src/components/dashboard/StatCard";
 import Badge from "@/src/components/dashboard/Badge";
-import { useGetDashboardStats } from "@/src/hooks/useDashboard";
+import { useGetDashboardStats, useTrackReport } from "@/src/hooks/useDashboard";
 import formatCurrency from "@/src/utils/formatCurrency";
 
 export default function DashboardPage() {
 	const { data, isLoading, isError, error, refetch } = useGetDashboardStats();
+	const trackReport = useTrackReport();
 
 	if (isError && !isLoading) {
 		return (
@@ -100,6 +101,7 @@ export default function DashboardPage() {
 							a.href = url;
 							a.download = `setu-dashboard-stats-${new Date().toISOString().split('T')[0]}.json`;
 							a.click();
+							trackReport.mutate();
 						}}
 						disabled={isLoading}
 						className="px-4 py-2 bg-white border border-setu-300 text-setu-700 rounded-lg font-semibold hover:bg-setu-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -125,6 +127,7 @@ export default function DashboardPage() {
 							a.href = url;
 							a.download = `setu-dashboard-summary-${new Date().toISOString().split('T')[0]}.csv`;
 							a.click();
+							trackReport.mutate();
 						}}
 						disabled={isLoading}
 						className="px-4 py-2 bg-setu-600 text-white rounded-lg font-semibold hover:bg-setu-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -220,7 +223,7 @@ export default function DashboardPage() {
 						direction: (overview?.trends?.goodsDonations || 0) >= 0 ? "up" : "down" 
 					}}
 				/>
-				<DashboardCard
+				{/* <DashboardCard
 					title="Total Distribution"
 					value={isLoading ? "..." : formatCurrency(overview?.totalDistribution || 0)}
 					subtitle="to beneficiaries"
@@ -239,7 +242,7 @@ export default function DashboardPage() {
 					value={isLoading ? "..." : `${overview?.efficiencyRate || 0}%`}
 					subtitle="of funds distributed"
 					icon={CheckCircle}
-				/>
+				/> */}
 			</div>
 
 			{/* Charts Row */}

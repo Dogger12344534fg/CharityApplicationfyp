@@ -4,6 +4,7 @@ import User from "../users/user.model.js";
 import Category from "../category/category.model.js";
 import GoodsDonation from "../goods/goods.model.js";
 import Team from "../teams/team.model.js";
+import Settings from "../settings/settings.model.js";
 
 // ─── Get Dashboard Overview Stats ────────────────────────────────────────────
 export const getDashboardStats = async (req, res) => {
@@ -338,6 +339,13 @@ export const getDashboardStats = async (req, res) => {
     const totalCampaigns = totalCampaignStats.totalCampaigns || 0;
     const completedCampaigns = campaignStatusCounts.completed || 0;
 
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const adminSettings = await Settings.findOne({ user: req.user._id });
+    const reportsGenerated =
+      adminSettings?.reportsMonth === currentMonth
+        ? adminSettings.reportsGenerated
+        : 0;
+
     const dashboardData = {
       overview: {
         totalDonations: totalPaymentStats.totalRevenue || 0,
@@ -347,7 +355,7 @@ export const getDashboardStats = async (req, res) => {
         totalGoodsDonations: totalGoods.count,
         totalGoodsItems: totalGoods.items,
         setuRevenue: totalPaymentStats.totalTips || 0,
-        reportsGenerated: 0,
+        reportsGenerated,
         completionRate: totalCampaigns > 0 ? Math.round((completedCampaigns / totalCampaigns) * 100) : 0,
         totalDistribution: 0,
         operatingCost: 0,
@@ -361,7 +369,7 @@ export const getDashboardStats = async (req, res) => {
           goodsItems: calculateTrend(currentGoods.items, previousGoods.items),
           setuRevenue: calculateTrend(currentPayments.tips || 0, previousPayments.tips || 0),
           reports: 0,
-          completionRate: 0 // Could calculate if we tracked historical data
+          completionRate: 0
         }
       },
       campaignStats: {
@@ -399,6 +407,35 @@ export const getDashboardStats = async (req, res) => {
       success: false, 
       message: error.message 
     });
+  }
+};
+
+// ─── Track Report Download ────────────────────────────────────────────────────
+export const trackReport = async (req, res) => {
+  try {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    const settings = await Settings.findOne({ user: req.user._id });
+
+    if (!settings) {
+      await Settings.create({
+        user: req.user._id,
+        reportsGenerated: 1,
+        reportsMonth: currentMonth,
+      });
+    } else if (settings.reportsMonth !== currentMonth) {
+      settings.reportsGenerated = 1;
+      settings.reportsMonth = currentMonth;
+      await settings.save();
+    } else {
+      settings.reportsGenerated += 1;
+      await settings.save();
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 

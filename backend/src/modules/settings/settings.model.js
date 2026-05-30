@@ -116,6 +116,16 @@ const settingsSchema = new mongoose.Schema(
       },
     },
 
+    // Report Tracking
+    reportsGenerated: {
+      type: Number,
+      default: 0,
+    },
+    reportsMonth: {
+      type: String,
+      default: "",
+    },
+
     // Privacy Settings
     privacy: {
       profileVisibility: {

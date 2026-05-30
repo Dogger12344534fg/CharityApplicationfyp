@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "../services/axiosInstance";
 
 export interface DashboardOverview {
@@ -107,7 +107,17 @@ export const useGetDashboardStats = () => {
       const res = await axiosInstance.get<DashboardResponse>("/dashboard/stats");
       return res.data;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchInterval: 1000 * 60 * 10, // Refetch every 10 minutes
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 10,
+  });
+};
+
+export const useTrackReport = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => axiosInstance.post("/dashboard/track-report"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
+    },
   });
 };
