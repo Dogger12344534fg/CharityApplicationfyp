@@ -81,11 +81,13 @@ const validateOtp = (otp) => {
   return { valid: true };
 };
 
+
 // ─── generate JWT ─────────────────────────────────────────────────────
 const generateToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
     expiresIn: "5d",
   });
+
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 export const register = async (req, res) => {
@@ -190,6 +192,9 @@ export const register = async (req, res) => {
     const userObj = user.toObject();
     delete userObj.password;
 
+
+
+    
     // ── Auto-join team if a valid invite token was provided ────────────────────
     let joinedTeamId = null;
     if (inviteToken && typeof inviteToken === "string" && inviteToken.trim()) {
@@ -244,6 +249,9 @@ export const register = async (req, res) => {
     });
   }
 };
+
+
+
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 export const login = async (req, res) => {
@@ -312,6 +320,9 @@ export const login = async (req, res) => {
     });
   }
 };
+
+
+
 
 // ─── Google OAuth Callback ────────────────────────────────────────────────────
 export const googleAuthCallback = async (req, res) => {
